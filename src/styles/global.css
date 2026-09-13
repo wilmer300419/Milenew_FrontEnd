@@ -1,49 +1,366 @@
+/* ===========================================================
+   TOKENS
+   =========================================================== */
+:root {
+  --red: #c1121f;
+  --red-soft: rgba(193, 18, 31, 0.14);
+  --amber: #d9a441;
+  --green: #5fbf7a;
+  --bg: #000000;
+  --panel: #0b0b0d;
+  --panel-2: #0f0f12;
+  --line: rgba(255, 255, 255, 0.09);
+  --ink: #f2f1ee;
+  --dim: #8b8884;
+  --faint: #55524f;
+  --field: rgba(255, 255, 255, 0.045);
+}
+
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
 }
 
 body {
-  margin: 0;
-  font-family: system-ui, sans-serif;
-  background: #f7f7f7;
-  color: #1a1a1a;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.011em;
 }
 
-nav {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-  background: #1a1a2e;
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
 }
 
-nav a {
-  color: white;
-  text-decoration: none;
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: var(--red);
+  color: #fff;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ===========================================================
+   LAYOUT
+   =========================================================== */
+.shell {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 24px 20px 64px;
 }
 
 .page {
-  padding: 2rem;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 40px 20px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.g2 {
+  display: grid;
+  grid-template-columns: 1.75fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.g3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.g4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+@media (max-width: 940px) {
+  .g2,
+  .g3 {
+    grid-template-columns: 1fr;
+  }
+  .g4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .g4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===========================================================
+   TOPBAR / NAV
+   =========================================================== */
+.topbar-wrap {
+  border-bottom: 1px solid var(--line);
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand .mk {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--red);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.brand .mk i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--amber);
+  display: block;
+}
+.brand b {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.brand span {
+  display: block;
+  font-size: 11.5px;
+  color: var(--dim);
+}
+.navlinks {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.navlinks a,
+.navlinks button {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--dim);
+  text-decoration: none;
+  transition: color 0.2s, background 0.2s;
+}
+.navlinks a:hover,
+.navlinks button:hover {
+  color: var(--ink);
+  background: var(--field);
+}
+.navlinks a.on {
+  color: #fff;
+  background: var(--red);
+}
+
+/* ===========================================================
+   PRIMITIVAS
+   =========================================================== */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+}
+.card.tight {
+  padding: 16px;
+}
+
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.eyebrow .sq {
+  width: 6px;
+  height: 6px;
+  background: var(--amber);
+  flex: none;
+}
+
+.htitle {
+  font-size: clamp(28px, 4.6vw, 48px);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+.htitle em {
+  font-style: normal;
+  color: var(--faint);
+}
+
+.sec {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.sec h3 {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim);
+  font-weight: 500;
+}
+.sec .act {
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.btn {
+  border-radius: 999px;
+  padding: 11px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: transform 0.16s, opacity 0.2s, background 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn-primary,
+.btn-fill {
+  background: var(--ink);
+  color: var(--bg);
+}
+.btn-fill.live {
+  background: var(--red);
+  color: #fff;
+}
+.btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.btn-secondary,
+.btn-out {
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: none;
+}
+.btn-out:hover {
+  background: var(--field);
+}
+
+.tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 5px;
+  background: var(--field);
+  color: var(--dim);
+}
+
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 13px 16px;
+  border-radius: 12px;
+  background: var(--red-soft);
+  border: 1px solid rgba(193, 18, 31, 0.35);
+  font-size: 12.5px;
+  color: var(--ink);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.input,
+.field input,
+.field select {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 16px;
+  background: var(--panel-2);
+  color: var(--ink);
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 0.2s;
+  width: 100%;
+}
+.input:focus,
+.field input:focus,
+.field select:focus {
+  border-color: var(--red);
+}
+.input::placeholder {
+  color: var(--faint);
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  max-width: 320px;
-}
-
-.btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.btn-primary {
-  background: #4f46e5;
-  color: white;
+  gap: 14px;
+  max-width: 360px;
 }
 
 .error {
-  color: #d33;
+  color: var(--red);
+}
+
+.empty {
+  color: var(--dim);
+  font-size: 13px;
+  padding: 24px 0;
+  text-align: center;
+}
+
+.foot {
+  color: var(--faint);
+  font-size: 11px;
+  text-align: center;
+  margin-top: 34px;
+  line-height: 1.7;
 }
