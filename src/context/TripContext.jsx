@@ -3,6 +3,7 @@ import { useAuth } from './AuthContext.jsx'
 import { useToast } from './ToastContext.jsx'
 import { usePreferences } from './PreferencesContext.jsx'
 import { finishTrip, getActiveTrip } from '../services/tripService.js'
+import { notify } from '../utils/pwa.js'
 
 const TripContext = createContext(null)
 const POLL_MS = 20000
@@ -44,9 +45,11 @@ export function TripProvider({ children }) {
     if (!trip || !prefs.notifyArrivals) return undefined
     const ms = new Date(trip.arrivesAt).getTime() - Date.now() - 60000
     if (ms < 0 || notified.current === trip.id) return undefined
-    const id = setTimeout(() => {
+    const id = setTimeout(async () => {
       notified.current = trip.id
-      toast.info(`Estás por llegar a ${trip.toName}. Alístate para bajar.`)
+      const message = `Estás por llegar a ${trip.toName}. Alístate para bajar.`
+      // Con la app en segundo plano: notificación del sistema; si no, aviso dentro de la app
+      if (!(await notify('Milenew · próxima parada', message, '/app'))) toast.info(message)
     }, ms)
     return () => clearTimeout(id)
   }, [trip, prefs.notifyArrivals, toast])

@@ -66,3 +66,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_vehicles_driver ON vehicles (driver_id) WHE
 ALTER TABLE incidents ADD COLUMN IF NOT EXISTS resolution_note VARCHAR(500);
 ALTER TABLE incidents ADD COLUMN IF NOT EXISTS handled_by INTEGER REFERENCES users (id) ON DELETE SET NULL;
 ALTER TABLE incidents ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+-- ---- v6: varias troncales en un mapa real (idempotente)
+ALTER TABLE routes ADD COLUMN IF NOT EXISTS express_code VARCHAR(10) NOT NULL DEFAULT 'EXP';
+ALTER TABLE routes ADD COLUMN IF NOT EXISTS local_code   VARCHAR(10) NOT NULL DEFAULT 'COR';
+ALTER TABLE routes ADD COLUMN IF NOT EXISTS color        VARCHAR(9)  NOT NULL DEFAULT '#b43c3a';
+-- Coordenadas aproximadas (WGS84) para el mapa geográfico
+ALTER TABLE stations ADD COLUMN IF NOT EXISTS lat NUMERIC(9, 6);
+ALTER TABLE stations ADD COLUMN IF NOT EXISTS lng NUMERIC(9, 6);

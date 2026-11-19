@@ -36,52 +36,75 @@
 
 ```text
 .
-├── src/, index.html, vite.config.js   → FrontEnd (React + Vite) · TransMilenio app
-├── backend/                           → BackEnd (Flask REST API + Pytest)
+├── src/, public/, index.html          → FrontEnd (React + Vite, installable PWA)
+├── e2e/                               → End-to-end tests (Playwright + axe accessibility audit)
+├── backend/                           → BackEnd (Flask REST API, gunicorn, pytest)
 │   ├── app/routes/        HTTP endpoints
 │   ├── app/services/      validation + business logic
 │   ├── app/repositories/  calls to stored functions (fn_*) only
-│   └── tests/             unit tests + integration tests against real PostgreSQL
-├── database/                          → PostgreSQL (tables/, functions/, scripts/)
+│   └── tests/             unit + integration tests against real PostgreSQL
+├── database/                          → PostgreSQL (tables/, functions/, scripts/, docker/)
+├── deploy/                            → nginx config and production env template
+├── docker-compose.yml                 → whole stack with one command
+├── .github/workflows/ci.yml           → lint + tests + e2e on every Pull Request
 └── docs/API.md                        → API contract (endpoints, JSON, status codes)
 ```
 
-The FrontEnd **never** talks to PostgreSQL: it only calls `/api/...`. Database credentials exist
-only in `backend/.env`, and the BackEnd only executes the stored functions in `database/functions/`.
+**The FrontEnd never talks to PostgreSQL.** The browser only calls `/api/...`; the BackEnd only
+executes the stored functions in `database/functions/`, using a least-privilege role that cannot
+read tables directly. In Docker, the database is not even reachable from outside.
+
+Roles: **pasajero** (`user`), **operador** (`driver`) and **central** (`admin`).
+Demo users (`flask seed-demo-users`): `pasajero@milenew.co / Pasajero123`,
+`conductor@milenew.co / Conductor123`, `central@milenew.co / Central123`.
+
+## Option A · Everything with Docker
+
+```bash
+cp deploy/.env.example deploy/.env     # fill in POSTGRES_PASSWORD, APP_DB_PASSWORD, SECRET_KEY
+docker compose --env-file deploy/.env up --build
+# → http://localhost:8080
+```
+
+For HTTPS put a reverse proxy (Caddy, Traefik or a cloud load balancer) in front of the `web`
+container and set `AUTH_COOKIE_SECURE=true`.
+
+## Option B · Local development
 
 ### 1. Database
 
 ```bash
-cd database
-psql -h localhost -U postgres -f scripts/00_create_database.sql
-psql -h localhost -U postgres -d milenew -f scripts/01_init.sql   # idempotent: re-run it to upgrade an existing DB
-# Optional (recommended): least-privilege role, can only EXECUTE fn_* functions
-psql -h localhost -U postgres -d milenew -v app_password="'change_me'" -f scripts/02_app_role.sql
+psql -h localhost -U postgres -f database/scripts/00_create_database.sql
+psql -h localhost -U postgres -d milenew -f database/scripts/01_init.sql      # idempotent: re-run to upgrade
+# Least-privilege role for the BackEnd (can only EXECUTE fn_* functions):
+psql -h localhost -U postgres -d milenew -v app_password="'change_me'" -f database/scripts/02_app_role.sql
 ```
+
+Then use `DATABASE_USER=milenew_app` and that password in `backend/.env`.
 
 ### 2. BackEnd
 
 ```bash
 cd backend
-python3 -m venv venv
-source venv/bin/activate            # Windows: venv\Scripts\activate
+python3 -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env                # fill in SECRET_KEY and DATABASE_*
-flask seed-demo-users               # pasajero@milenew.co / Pasajero123 · conductor@milenew.co / Conductor123 (bus vagon-02)
-flask assign-bus <email> vagon-03   # assign a bus to another operator
-pytest -v                           # unit tests (no database needed)
+cp .env.example .env              # fill in SECRET_KEY and DATABASE_*
+flask seed-demo-users
+pytest -v                                                                    # unit tests
 TEST_DATABASE_ADMIN_URL=postgresql://postgres:postgres@localhost:5432/postgres pytest -v   # + integration
-flask run                           # http://localhost:5000/api/health
+flask run                         # dev server → http://localhost:5000/api/health
+gunicorn -c gunicorn.conf.py run:app   # production server
 ```
 
 ### 3. FrontEnd
 
 ```bash
-cp .env.example .env                # VITE_API_URL=/api (Vite proxies /api to the BackEnd)
+cp .env.example .env              # VITE_API_URL=/api (Vite proxies /api to the BackEnd)
 npm install
-npm run dev                         # http://localhost:5173
-npm test                            # component and flow tests (no backend needed)
+npm run dev                       # http://localhost:5173
+npm test                          # component and flow tests (no backend needed)
 npm run lint
+npx playwright install chromium && npm run e2e   # end-to-end + accessibility (needs DB + demo users)
 ```
 
 See [docs/API.md](docs/API.md) for the full API contract.

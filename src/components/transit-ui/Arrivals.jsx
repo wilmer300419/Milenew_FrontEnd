@@ -7,8 +7,8 @@ import { humanEta } from '../../utils/human.js'
 import Skeleton from '../ui/Skeleton.jsx'
 
 /** Próximas llegadas a una estación, con cuenta regresiva por segundo. */
-function Arrivals({ stationId, limit = 4, direction }) {
-  const { data, loading, error, fetchedAt } = usePolling(() => getStationArrivals(stationId), 6000, [stationId])
+function Arrivals({ stationId, route, limit = 4, direction }) {
+  const { data, loading, error, fetchedAt } = usePolling(() => getStationArrivals(stationId, route), 6000, [stationId, route])
   const now = useNow(1000)
   const elapsed = (now - fetchedAt) / 1000
 

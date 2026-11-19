@@ -1464,3 +1464,125 @@
   backdrop-filter: none;
   box-shadow: 0 0 0 1px var(--line-strong), 0 24px 48px -16px rgba(0, 0, 0, 0.6);
 }
+
+/* ---- selector de troncal */
+.route-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* ---- mapa geográfico (Leaflet) */
+.transit-map-wrap {
+  position: relative;
+}
+
+.transit-map {
+  height: clamp(320px, 52vh, 520px);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--bg-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+  z-index: 0;
+}
+
+.map-note {
+  margin: 8px 2px 0;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* tema oscuro: los mapas se invierten para encajar con la app */
+:root:not([data-theme='light']) .transit-map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.82) contrast(0.92) saturate(0.35);
+}
+
+.transit-map .leaflet-control-zoom a,
+.transit-map .leaflet-control-attribution {
+  background: var(--glass-strong) !important;
+  color: var(--text) !important;
+  border-color: var(--line) !important;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.transit-map .leaflet-control-attribution a {
+  color: var(--text-2) !important;
+}
+
+.transit-map .leaflet-tooltip {
+  background: var(--bg-2);
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-pop);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.transit-map .leaflet-tooltip-top::before {
+  border-top-color: var(--bg-2);
+}
+
+/* buses sobre el mapa: mismo ícono que la línea, se deslizan entre consultas */
+.map-bus {
+  transition: transform 2s linear;
+}
+
+.leaflet-zoom-anim .map-bus {
+  transition: none;
+}
+
+.map-bus .rl-bus-body {
+  display: block;
+  width: 30px;
+  height: 26px;
+  border-radius: 8px;
+  background: #1c1c1e;
+  border: 2px solid #f1efea;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 6px 14px -4px rgba(0, 0, 0, 0.6);
+}
+
+.map-bus.express .rl-bus-body {
+  background: var(--red);
+}
+
+.map-bus .rl-bus-body i {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 4px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.map-bus .rl-bus-body::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 5px;
+  height: 3px;
+  background: var(--yellow);
+}
+
+.map-bus.focus .rl-bus-body {
+  box-shadow: 0 0 0 4px var(--yellow), 0 8px 18px -4px rgba(0, 0, 0, 0.6);
+}
+
+.map-bus-tag {
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  transform: translateX(-50%);
+  padding: 1px 6px;
+  border-radius: var(--pill);
+  background: var(--contrast);
+  color: var(--on-contrast);
+  font: 600 10px var(--mono);
+  white-space: nowrap;
+}

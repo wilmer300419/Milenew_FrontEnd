@@ -11,6 +11,11 @@ DRIVER_ROLES = ("driver", "admin")
 
 
 # ---------------------------------------------------------------- público
+@transit_bp.get("/routes")
+def routes():
+    return success(transit_service.list_routes(), "Troncales")
+
+
 @transit_bp.get("/stations")
 def stations():
     route = request.args.get("route", transit_service.DEFAULT_ROUTE)

@@ -12,6 +12,7 @@ import Field from '../components/ui/Field.jsx'
 import Switch from '../components/ui/Switch.jsx'
 import Segmented from '../components/ui/Segmented.jsx'
 import Reveal, { revealItem } from '../components/ui/Reveal.jsx'
+import { notificationsSupported, requestNotificationPermission } from '../utils/pwa.js'
 import Modal from '../components/ui/Modal.jsx'
 import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 
@@ -183,9 +184,13 @@ function Profile() {
             <PreferenceRow
               icon={Navigation}
               title="Aviso de llegada"
-              text="Te avisamos un minuto antes de llegar a tu destino."
+              text="Un minuto antes de llegar, aunque tengas la app en segundo plano."
               checked={prefs.notifyArrivals}
-              onChange={(v) => savePref({ notifyArrivals: v }, v ? 'Aviso de llegada activado' : 'Aviso de llegada desactivado')}
+              onChange={async (v) => {
+                // Para avisar con la app en segundo plano hace falta el permiso del sistema
+                if (v && notificationsSupported()) await requestNotificationPermission()
+                savePref({ notifyArrivals: v }, v ? 'Aviso de llegada activado' : 'Aviso de llegada desactivado')
+              }}
             />
           )}
           <PreferenceRow

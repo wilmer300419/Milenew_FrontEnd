@@ -2,13 +2,17 @@ import api from './api'
 
 export const ROUTE_ID = 'caracas-b75'
 
-export const getStations = () => api.get('/transit/stations')
+export const getRoutes = () => api.get('/transit/routes')
+
+export const getStations = (routeId = ROUTE_ID) => api.get('/transit/stations', { params: { route: routeId } })
 
 export const getRouteVehicles = (routeId = ROUTE_ID) => api.get(`/transit/routes/${routeId}/vehicles`)
 
-export const getStationArrivals = (stationId) => api.get(`/transit/stations/${stationId}/arrivals`)
+export const getStationArrivals = (stationId, routeId = ROUTE_ID) =>
+  api.get(`/transit/stations/${stationId}/arrivals`, { params: { route: routeId } })
 
-export const planTrip = (fromId, toId) => api.get('/transit/trip-plan', { params: { from: fromId, to: toId } })
+export const planTrip = (fromId, toId, routeId = ROUTE_ID) =>
+  api.get('/transit/trip-plan', { params: { from: fromId, to: toId, route: routeId } })
 
 export const getIncidentCategories = () => api.get('/transit/incident-categories')
 

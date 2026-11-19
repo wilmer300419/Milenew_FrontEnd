@@ -6,7 +6,7 @@ import { useToast } from '../../context/ToastContext.jsx'
 import { useActiveTrip } from '../../context/TripContext.jsx'
 import { useNotifications } from '../../context/NotificationsContext.jsx'
 import { usePolling } from '../../hooks/usePolling.js'
-import { useFavorites, useStations, useVehicles } from '../../hooks/useTransit.js'
+import { shortRouteName, useAllStations, useFavorites, useRoutes, useSelectedRoute, useStations, useVehicles } from '../../hooks/useTransit.js'
 import { getWallet } from '../../services/walletService.js'
 import { getTrips } from '../../services/tripService.js'
 import { firstName, formatDateTime, formatPrice, greeting } from '../../utils/formatters.js'
@@ -29,15 +29,18 @@ function PassengerHome() {
   const toast = useToast()
   const { trip } = useActiveTrip()
   const notifications = useNotifications()
-  const { stations } = useStations()
-  const { vehicles } = useVehicles()
+  const [route] = useSelectedRoute()
+  const { routes } = useRoutes()
+  const { stations } = useStations(route)
+  const allStations = useAllStations()
+  const { vehicles } = useVehicles(route)
   const favorites = useFavorites(() => toast.error('No se pudo actualizar la favorita'))
   const wallet = usePolling(getWallet, 30000)
   const trips = usePolling(getTrips, 0)
   const [favIndex, setFavIndex] = useState(0)
 
-  const favStations = stations.filter((s) => favorites.set.has(s.id))
-  const suggested = stations.find((s) => s.code === SUGGESTED_CODE) ?? stations[0]
+  const favStations = allStations.filter((s) => favorites.set.has(s.id))
+  const suggested = allStations.find((s) => s.code === SUGGESTED_CODE) ?? allStations[0]
   const current = favStations.length ? favStations[Math.min(favIndex, favStations.length - 1)] : suggested
 
   const markSuggested = async () => {
@@ -98,7 +101,7 @@ function PassengerHome() {
                     </Button>
                   )}
                 </div>
-                <Arrivals stationId={current.id} />
+                <Arrivals stationId={current.id} route={current.routeCode} />
               </>
             )}
           </Glass>
@@ -106,7 +109,7 @@ function PassengerHome() {
           <Glass variants={revealItem}>
             <div className="card-head">
               <h3 className="title-md">
-                <span className="live-dot" /> Troncal Caracas
+                <span className="live-dot" /> Troncal {shortRouteName(routes.find((r) => r.code === route)) || 'Caracas'}
               </h3>
               <Link to="/app/en-vivo" className="link" style={{ fontSize: 13 }}>
                 Ver en vivo
@@ -147,7 +150,7 @@ function PassengerHome() {
               <ul className="list">
                 {trips.data.slice(0, 3).map((t) => (
                   <li key={t.id} className="list-item">
-                    <span className={`svc ${t.service === 'Expreso' ? 'express' : ''}`}>{t.service === 'Expreso' ? 'B75' : 'C15'}</span>
+                    <span className={`svc ${t.service === 'Expreso' ? 'express' : ''}`}>{t.serviceCode ?? (t.service === 'Expreso' ? 'B75' : 'C15')}</span>
                     <span className="list-text">
                       <b>
                         {t.fromName} → {t.toName}

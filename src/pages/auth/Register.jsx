@@ -116,7 +116,15 @@ function Register() {
           onChange={set('password')}
           error={errors.password}
         />
-        <div className="steps" aria-label={`Seguridad de la contraseña: ${score} de 4`}>
+        <div
+          className="steps"
+          role="meter"
+          aria-label="Seguridad de la contraseña"
+          aria-valuemin={0}
+          aria-valuemax={4}
+          aria-valuenow={score}
+          aria-valuetext={['Muy débil', 'Débil', 'Aceptable', 'Buena', 'Fuerte'][score]}
+        >
           {[1, 2, 3, 4].map((n) => (
             <i key={n} className={score >= n ? 'on' : ''} />
           ))}

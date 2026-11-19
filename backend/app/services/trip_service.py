@@ -8,8 +8,9 @@ from ..utils.validation import MAX_INT, is_int
 from . import transit_service
 
 
-def _station_ids(route_code=transit_service.DEFAULT_ROUTE):
-    return {s["id"] for s in transit_repository.list_stations(route_code)}
+def _station_ids():
+    """Ids de estación de TODAS las troncales."""
+    return {s["id"] for r in transit_repository.list_routes() for s in transit_repository.list_stations(r["code"])}
 
 
 # ---------------------------------------------------------------- favoritas
@@ -37,12 +38,13 @@ def remove_favorite(user_id, station_id):
 # ---------------------------------------------------------------- viajes
 def create_trip(user_id, data):
     from_id, to_id = transit_service.parse_station_pair(data, "fromStationId", "toStationId")
-    plan = transit_service.compute_plan(from_id, to_id)
+    route = data.get("routeId") if isinstance(data.get("routeId"), str) else transit_service.DEFAULT_ROUTE
+    plan = transit_service.compute_plan(from_id, to_id, route)
     if plan["sameStation"]:
         raise ApiError("Origen y destino deben ser estaciones distintas", 400)
 
     try:
-        trip = trip_repository.create_trip(user_id, transit_service.DEFAULT_ROUTE, from_id, to_id,
+        trip = trip_repository.create_trip(user_id, route, from_id, to_id,
                                            plan["bestService"], plan["fare"], plan["bestMinutes"])
     except pg_errors.CheckViolation as exc:
         raise ApiError("Saldo insuficiente. Recarga tu tarjeta TuLlave para pagar el pasaje.", 400,

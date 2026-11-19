@@ -29,8 +29,16 @@ Claves en **camelCase**. `src/services/api.js` devuelve el cuerpo y convierte er
 | 409 | Correo ya registrado |
 | 500 / 503 | Error interno (sin detalles) / sin conexión a la base de datos o a reCAPTCHA |
 
-**Autenticación:** `Authorization: Bearer <token>` (JWT, `JWT_EXPIRES_MINUTES`, 60 por defecto).
-🔒 = requiere sesión · 🚍 = requiere rol `driver` (o `admin`) · 👤? = sesión opcional.
+**Autenticación (navegador):** cookie `milenew_session` **httpOnly** (JavaScript no puede leerla), `Path=/api`,
+`SameSite=Lax`. La pone el BackEnd al registrarse o iniciar sesión; dura `JWT_EXPIRES_MINUTES` (60) o
+`REMEMBER_DAYS` (30) con `rememberMe: true`. Las peticiones que modifican datos con cookie deben enviar
+`X-Requested-With: XMLHttpRequest` (protección CSRF; sin ella → 403).
+Clientes que no son navegador pueden usar `Authorization: Bearer <token>`.
+
+Cada sesión es **revocable**: cerrar sesión la invalida en el servidor; cambiar o recuperar la contraseña y
+`/auth/logout-all` cierran todas. Límite de intentos: login 10/min, registro 5/min, recuperación 5/15 min → 429.
+
+🔒 = requiere sesión · 🚍 = rol `driver` · 🛡 = rol `admin` (central) · 👤? = sesión opcional.
 
 Objeto `User`: `{ id, name, email, role }` con `role` ∈ `user` | `driver` | `admin`.
 
@@ -40,10 +48,11 @@ Objeto `User`: `{ id, name, email, role }` con `role` ∈ `user` | `driver` | `a
 
 | Método | Ruta | Body | `data` |
 | --- | --- | --- | --- |
-| POST | `/auth/login` | `{ email, password, captchaToken }` | `{ user, token }` o `{ requiresTwoFactor: true }` |
-| POST | `/auth/login/verify-2fa` | `{ email, code }` | `{ user, token }` |
-| POST | `/auth/register` | `{ name, email, password, captchaToken }` (mín. 8) | `{ user, token }` |
-| POST | `/auth/logout` 🔒 | — | `null` |
+| POST | `/auth/login` | `{ email, password, captchaToken, rememberMe? }` | `{ user }` + cookie, o `{ requiresTwoFactor: true }` |
+| POST | `/auth/login/verify-2fa` | `{ email, code, rememberMe? }` | `{ user }` + cookie |
+| POST | `/auth/register` | `{ name, email, password, acceptTerms: true, captchaToken }` | `{ user }` + cookie |
+| POST | `/auth/logout` | — | `null` (revoca la sesión y borra la cookie) |
+| POST | `/auth/logout-all` 🔒 | — | `null` (cierra todas las sesiones del usuario) |
 | GET | `/auth/me` 🔒 | — | `User` |
 | POST | `/auth/recovery/request` | `{ email }` | `null` (mismo mensaje exista o no el correo) |
 | POST | `/auth/recovery/reset` | `{ email, code, newPassword }` | `null` |
@@ -62,13 +71,15 @@ Objeto `User`: `{ id, name, email, role }` con `role` ∈ `user` | `driver` | `a
 | --- | --- | --- | --- |
 | GET | `/users/me` 🔒 | — | `User` |
 | PUT | `/users/me` 🔒 | `{ name, email }` | `User` (409 si el correo es de otra cuenta) |
-| PUT | `/users/me/password` 🔒 | `{ currentPassword, newPassword }` | `null` (400 si la actual es incorrecta) |
+| PUT | `/users/me/password` 🔒 | `{ currentPassword, newPassword }` | `null` + cookie nueva (cierra las otras sesiones) |
+| DELETE | `/users/me` 🔒 | `{ password }` | `null` — borra la cuenta y sus datos (Ley 1581) |
 
 ## Troncal — `src/services/transitService.js`
 
 | Método | Ruta | `data` |
 | --- | --- | --- |
-| GET | `/transit/stations` | `Station[]` en orden norte → sur |
+| GET | `/transit/routes` | `[{ code, name, fare, expressCode, localCode, color, stationCount }]` |
+| GET | `/transit/stations?route=` | `Station[]` en orden norte → sur (por defecto `caracas-b75`) |
 | GET | `/transit/routes/:routeId/vehicles` | `{ routeId, routeName, secondsPerStop, serverTime, vehicles: Vehicle[] }` (todos los buses en vivo) |
 | GET | `/transit/stations/:stationId/arrivals` | `{ station, arrivals: [{ vehicleId, label, service, direction, etaSeconds, currentStation }], serverTime }` |
 | GET | `/transit/incident-categories` | `string[]` |
@@ -82,7 +93,10 @@ Objeto `User`: `{ id, name, email, role }` con `role` ∈ `user` | `driver` | `a
 | GET | `/transit/operations-chat` 🚍 | `[{ id, from: "driver" \| "central", text, createdAt }]` |
 | POST | `/transit/operations-chat` 🚍 | body `{ message }` → mensaje creado (la central responde automáticamente) |
 
-- `Station`: `{ id, code, name, sortOrder, isExpressStop, accesses: string[] }`
+- `Station`: `{ id, code, name, sortOrder, isExpressStop, accesses: string[], lat, lng, routeCode }`
+  (coordenadas aproximadas, para el mapa).
+- Troncales: `caracas-b75` (B75/C15) y `autonorte-b13` (B13/C19). `trip-plan`, `arrivals` y `POST /trips`
+  aceptan la troncal (`?route=` o `routeId`).
 - `cars`: `[{ n, pct }]`
 - `Vehicle`: `{ vehicleId, label, service, currentIndex, nextIndex, position, direction, atStation, speed, occupancyPct, cars, currentStation, nextStation, upcomingStops: [{ stationId, index, name, etaSeconds }] }`.
   `service` es `"Expreso"` o `"Corriente"`. `position` es continuo (índice de estación con decimales) para animar el bus entre estaciones.
@@ -127,6 +141,21 @@ transacción y cierra el viaje anterior si seguía abierto. Si no alcanza el sal
 - Sin sesión, `/notifications` devuelve solo los avisos generales; con sesión, también los personales.
 - Cada recarga crea una notificación personal **"Recarga exitosa"**.
 
+## Central de operaciones 🛡 (rol admin)
+
+| Método | Ruta | Body | `data` |
+| --- | --- | --- | --- |
+| GET | `/admin/summary` | — | `{ openIncidents, inProgressIncidents, drivers, assignedVehicles, vehicles, unreadMessages, passengers }` |
+| GET | `/admin/incidents?status=` | — | incidencias (`open`, `in_progress`, `closed` o todas) con `reporterName`, `routeName`, `resolutionNote` |
+| PATCH | `/admin/incidents/:id` | `{ status, note? }` | al cerrar, quien la reportó recibe un aviso personal |
+| GET | `/admin/conversations` | — | una por operador: `{ driverId, driverName, vehicleLabel, lastText, lastSender, lastAt, unread }` |
+| GET | `/admin/conversations/:driverId` | — | mensajes (los marca como leídos) |
+| POST | `/admin/conversations/:driverId` | `{ message }` | mensaje enviado por la central |
+| GET | `/admin/fleet` | — | `{ vehicles: [...], drivers: [...] }` |
+| PUT | `/admin/fleet/:vehicleCode/driver` | `{ driverId \| null }` | flota actualizada (un operador = un bus) |
+| GET / POST | `/admin/notices` | `{ title, description }` | avisos generales para todos los pasajeros |
+| DELETE | `/admin/notices/:id` | — | `null` |
+
 ## Salud
 
 `GET /health` → `{ api: "ok", database: "ok" }`, o 503 si no hay base de datos.
@@ -145,5 +174,8 @@ transacción y cierra el viaje anterior si seguía abierto. Si no alcanza el sal
 | notificaciones | `fn_notification_list` |
 | checklist / chat | `fn_checklist_list`, `fn_checklist_set`, `fn_chat_list`, `fn_chat_create` |
 | buses / operador | `fn_vehicle_list_by_route`, `fn_vehicle_get_by_driver`, `fn_vehicle_assign_driver` |
+| central | `fn_central_summary`, `fn_incident_list`, `fn_incident_update`, `fn_chat_conversations`, `fn_chat_mark_read`, `fn_fleet_list`, `fn_driver_list`, `fn_vehicle_unassign`, `fn_notice_create`, `fn_notice_delete` |
+| sesiones / cuenta | `fn_session_check`, `fn_session_revoke`, `fn_user_bump_token_version`, `fn_user_delete` |
+| troncales | `fn_route_list`, `fn_route_get`, `fn_station_list` |
 | preferencias / avisos leídos | `fn_preferences_get`, `fn_preferences_update`, `fn_notification_mark_read`, `fn_notification_mark_all_read`, `fn_notification_unread_count` |
 | viajes / favoritas / movimientos | `fn_trip_create`, `fn_trip_list`, `fn_trip_get_active`, `fn_trip_finish`, `fn_favorite_list`, `fn_favorite_add`, `fn_favorite_remove`, `fn_wallet_transaction_list` |

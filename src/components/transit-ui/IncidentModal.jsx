@@ -5,7 +5,7 @@ import Button from '../ui/Button.jsx'
 import { getIncidentCategories, postIncident } from '../../services/transitService.js'
 import { useToast } from '../../context/ToastContext.jsx'
 
-function IncidentModal({ open, onClose }) {
+function IncidentModal({ open, onClose, route }) {
   const [categories, setCategories] = useState([])
   const [category, setCategory] = useState(null)
   const [description, setDescription] = useState('')
@@ -23,7 +23,7 @@ function IncidentModal({ open, onClose }) {
   const send = async () => {
     setSending(true)
     try {
-      const res = await postIncident({ category, description })
+      const res = await postIncident({ category, description, routeId: route })
       toast.success(res.message)
       setCategory(null)
       setDescription('')

@@ -22,7 +22,7 @@ function ActiveTripCard() {
   const { trip, finish } = useActiveTrip()
   const toast = useToast()
   const now = useNow(5000)
-  const { stations } = useStations()
+  const { stations } = useStations(trip?.routeCode)
   if (!trip) return null
 
   const order = (id) => stations.findIndex((s) => s.id === id)
@@ -69,7 +69,7 @@ function ActiveTripCard() {
           <small>
             Tu bus en {trip.fromName} · hacia el {direction}
           </small>
-          <Arrivals stationId={trip.fromStationId} limit={2} direction={stations.length ? direction : undefined} />
+          <Arrivals stationId={trip.fromStationId} route={trip.routeCode} limit={2} direction={stations.length ? direction : undefined} />
         </div>
       )}
 

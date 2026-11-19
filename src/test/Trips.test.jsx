@@ -6,6 +6,8 @@ import { startTrip } from '../services/tripService.js'
 import { renderApp, STATIONS } from './render.jsx'
 
 vi.mock('../services/transitService.js', () => ({
+  ROUTE_ID: 'caracas-b75',
+  getRoutes: vi.fn(() => Promise.resolve({ data: [{ code: 'caracas-b75', name: 'Troncal Caracas · Test', color: '#b43c3a' }] })),
   getStations: vi.fn(() => Promise.resolve({ data: STATIONS })),
   getRouteVehicles: vi.fn(() => Promise.resolve({ data: { vehicles: [] } })),
   getStationArrivals: vi.fn(() => Promise.resolve({ data: { arrivals: [] } })),
@@ -59,7 +61,7 @@ describe('Pagar un viaje', () => {
     expect(startTrip).not.toHaveBeenCalled()
 
     await userEvent.click(within(dialog).getByRole('button', { name: /Pagar/ }))
-    expect(startTrip).toHaveBeenCalledWith(1, 3)
+    expect(startTrip).toHaveBeenCalledWith(1, 3, 'caracas-b75')
     expect(await screen.findByText('Viaje en curso')).toBeInTheDocument()
   })
 })

@@ -8,9 +8,21 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    build: {
+      rollupOptions: {
+        output: {
+          // Librerías en archivos aparte: cambian poco y el navegador las mantiene en caché
+          manualChunks: {
+            react: ['react', 'react-dom', 'react-router-dom'],
+            motion: ['framer-motion'],
+          },
+        },
+      },
+    },
     test: {
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.js'],
+      include: ['src/**/*.test.{js,jsx}'],
       css: false,
       restoreMocks: true,
     },

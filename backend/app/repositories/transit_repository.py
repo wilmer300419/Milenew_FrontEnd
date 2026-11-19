@@ -37,3 +37,7 @@ def get_vehicle_by_driver(driver_id):
 def assign_driver(vehicle_code, driver_id):
     row = call_function_one("fn_vehicle_assign_driver", vehicle_code, driver_id)
     return bool(row and row["fn_vehicle_assign_driver"])
+
+
+def list_routes():
+    return call_function("fn_route_list")

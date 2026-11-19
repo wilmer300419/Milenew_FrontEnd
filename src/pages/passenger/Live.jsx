@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { AlertTriangle, Bus, Info, MapPin } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useToast } from '../../context/ToastContext.jsx'
-import { LIVE_INTERVAL, useFavorites, useStations, useVehicles } from '../../hooks/useTransit.js'
+import { LIVE_INTERVAL, useFavorites, useRoutes, useSelectedRoute, useStations, useVehicles } from '../../hooks/useTransit.js'
 import { haptic } from '../../utils/human.js'
 import Glass from '../../components/ui/Glass.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -15,6 +15,15 @@ import StationList from '../../components/transit-ui/StationList.jsx'
 import Arrivals from '../../components/transit-ui/Arrivals.jsx'
 import BusCard from '../../components/transit-ui/BusCard.jsx'
 import IncidentModal from '../../components/transit-ui/IncidentModal.jsx'
+import RouteSwitcher from '../../components/transit-ui/RouteSwitcher.jsx'
+
+// El mapa (Leaflet) solo se descarga si el usuario lo abre
+const TransitMap = lazy(() => import('../../components/transit-ui/TransitMap.jsx'))
+
+const VIEWS = [
+  { value: 'map', label: 'Mapa' },
+  { value: 'line', label: 'Línea' },
+]
 
 const FILTERS = [
   { value: 'all', label: 'Todos' },
@@ -26,8 +35,12 @@ const FILTERS = [
 function Live() {
   const { isPassenger } = useAuth()
   const toast = useToast()
-  const { stations, loading: loadingStations, error } = useStations()
-  const { vehicles, fetchedAt } = useVehicles()
+  const [route, setRoute] = useSelectedRoute()
+  const { routes } = useRoutes()
+  const routeInfo = routes.find((r) => r.code === route)
+  const { stations, loading: loadingStations, error } = useStations(route)
+  const { vehicles, fetchedAt } = useVehicles(route)
+  const [view, setView] = useState('map')
   const favorites = useFavorites(() => toast.error('No se pudo actualizar la favorita'))
   const [selectedId, setSelectedId] = useState(null)
   const [busId, setBusId] = useState(null)
@@ -35,6 +48,12 @@ function Live() {
   const [incidentOpen, setIncidentOpen] = useState(false)
 
   const selected = stations.find((s) => s.id === selectedId) ?? stations[0]
+
+  const changeRoute = (code) => {
+    setRoute(code)
+    setSelectedId(null)
+    setBusId(null)
+  }
   const shown = vehicles.filter((v) => filter === 'all' || v.service === filter)
 
   const toggleFavorite = async (station) => {
@@ -47,17 +66,20 @@ function Live() {
     <Reveal>
       <Reveal.Item className="page-head">
         <div>
-          <span className="eyebrow">Troncal Caracas · Calle 76 ↔ Portal Tunal</span>
+          <span className="eyebrow">{routeInfo?.name ?? 'Troncal'}</span>
           <h1 className="title-lg" style={{ marginTop: 10 }}>
             Buses y recorrido
           </h1>
           <p>Elige una estación para ver cuándo llega el próximo bus.</p>
         </div>
-        {isPassenger && (
-          <Button variant="glass" onClick={() => setIncidentOpen(true)}>
-            <AlertTriangle size={16} /> Reportar incidencia
-          </Button>
-        )}
+        <div className="row wrap">
+          <RouteSwitcher value={route} onChange={changeRoute} />
+          {isPassenger && (
+            <Button variant="glass" onClick={() => setIncidentOpen(true)}>
+              <AlertTriangle size={16} /> Reportar incidencia
+            </Button>
+          )}
+        </div>
       </Reveal.Item>
 
       {error && (
@@ -77,10 +99,23 @@ function Live() {
               <Info size={12} /> Ubicación simulada
             </span>
             <Segmented size="sm" options={FILTERS} value={filter} onChange={setFilter} />
+            <Segmented size="sm" options={VIEWS} value={view} onChange={setView} />
           </span>
         </div>
         {loadingStations ? (
           <Skeleton h={70} r={14} />
+        ) : view === 'map' ? (
+          <Suspense fallback={<Skeleton h={360} r={16} />}>
+            <TransitMap
+              stations={stations}
+              vehicles={shown}
+              color={routeInfo?.color}
+              selectedId={selected?.id}
+              onSelect={(s) => setSelectedId(s.id)}
+              favorites={favorites.set}
+              focusVehicle={busId}
+            />
+          </Suspense>
         ) : (
           <RouteLine
             stations={stations}
@@ -123,7 +158,7 @@ function Live() {
               <h3 className="title-md">Próximas llegadas</h3>
               {selected && <span className="chip">{selected.name}</span>}
             </div>
-            {selected ? <Arrivals stationId={selected.id} /> : <Skeleton h={100} />}
+            {selected ? <Arrivals stationId={selected.id} route={route} /> : <Skeleton h={100} />}
           </Glass>
 
           <Glass variants={revealItem}>
@@ -151,7 +186,7 @@ function Live() {
         </div>
       </div>
 
-      <IncidentModal open={incidentOpen} onClose={() => setIncidentOpen(false)} />
+      <IncidentModal open={incidentOpen} onClose={() => setIncidentOpen(false)} route={route} />
     </Reveal>
   )
 }

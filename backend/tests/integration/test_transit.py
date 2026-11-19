@@ -9,7 +9,7 @@ def test_stations_from_database(client):
     stations = _stations(client)
     assert len(stations) == 19
     assert stations[0]["name"] == "Calle 76" and stations[-1]["name"] == "Portal Tunal"
-    assert set(stations[0]) == {"id", "code", "name", "sortOrder", "isExpressStop", "accesses"}
+    assert set(stations[0]) == {"id", "code", "name", "sortOrder", "isExpressStop", "accesses", "lat", "lng", "routeCode"}
     assert isinstance(stations[0]["accesses"], list)
 
 
@@ -234,3 +234,32 @@ def test_preferences(client, passenger):
     assert client.put("/api/users/me/preferences", json={"theme": "rosa"}, headers=h).status_code == 400
     assert client.put("/api/users/me/preferences", json={"notifyNews": "no"}, headers=h).status_code == 400
     assert client.put("/api/users/me/preferences", json={}, headers=h).status_code == 400
+
+
+def test_network_with_two_troncales(client, passenger):
+    routes = client.get("/api/transit/routes").get_json()["data"]
+    assert [r["code"] for r in routes] == ["caracas-b75", "autonorte-b13"]
+    assert routes[1]["expressCode"] == "B13" and routes[1]["stationCount"] == 15
+
+    north = client.get("/api/transit/stations?route=autonorte-b13").get_json()["data"]
+    assert north[0]["name"] == "Portal del Norte" and north[-1]["name"] == "Héroes"
+    assert north[0]["routeCode"] == "autonorte-b13" and north[0]["lat"] > 4.7
+
+    buses = client.get("/api/transit/routes/autonorte-b13/vehicles").get_json()["data"]["vehicles"]
+    assert {b["label"].split(" · ")[0] for b in buses} == {"B13", "C19"}
+
+    ids = {s["name"]: s["id"] for s in north}
+    plan = client.get(f"/api/transit/trip-plan?route=autonorte-b13&from={ids['Portal del Norte']}&to={ids['Héroes']}")
+    assert plan.get_json()["data"]["bestService"] == "Expreso"
+
+    h = auth(passenger["token"])
+    client.post("/api/wallet/recharge", json={"amount": 5000}, headers=h)
+    trip = client.post("/api/trips", json={"fromStationId": ids["Portal del Norte"], "toStationId": ids["Héroes"],
+                                           "routeId": "autonorte-b13"}, headers=h).get_json()["data"]
+    assert trip["routeCode"] == "autonorte-b13" and trip["serviceCode"] == "B13"
+    # estaciones de otra troncal no se mezclan
+    caracas = client.get("/api/transit/stations").get_json()["data"]
+    bad = client.post("/api/trips", json={"fromStationId": caracas[0]["id"], "toStationId": ids["Héroes"],
+                                          "routeId": "autonorte-b13"}, headers=h)
+    assert bad.status_code == 404
+    assert client.put(f"/api/users/me/favorites/{ids['Calle 100']}", headers=h).status_code == 200

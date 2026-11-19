@@ -5,7 +5,7 @@ import { ArrowUpDown, CircleDot, History, MapPin, RotateCcw, Ticket } from 'luci
 import { useToast } from '../../context/ToastContext.jsx'
 import { useActiveTrip } from '../../context/TripContext.jsx'
 import { usePolling } from '../../hooks/usePolling.js'
-import { useFavorites, useStations } from '../../hooks/useTransit.js'
+import { useFavorites, useSelectedRoute, useStations } from '../../hooks/useTransit.js'
 import { planTrip } from '../../services/transitService.js'
 import { getTrips, startTrip } from '../../services/tripService.js'
 import { getWallet } from '../../services/walletService.js'
@@ -19,12 +19,14 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog.jsx'
 import Reveal, { revealItem } from '../../components/ui/Reveal.jsx'
 import StationPicker from '../../components/transit-ui/StationPicker.jsx'
 import ActiveTripCard from '../../components/transit-ui/ActiveTripCard.jsx'
+import RouteSwitcher from '../../components/transit-ui/RouteSwitcher.jsx'
 
-const svcCode = (service) => (service === 'Expreso' ? 'B75' : 'C15')
+const svcCode = (t) => t.serviceCode ?? (t.service === 'Expreso' ? 'B75' : 'C15')
 
 function Trips() {
   const toast = useToast()
-  const { stations } = useStations()
+  const [route, setRoute] = useSelectedRoute()
+  const { stations } = useStations(route)
   const favorites = useFavorites()
   const { trip: activeTrip, setTrip } = useActiveTrip()
   const trips = usePolling(getTrips, 0)
@@ -42,9 +44,12 @@ function Trips() {
   // Estaciones usadas recientemente (para el buscador)
   const recents = useMemo(() => {
     const ids = []
-    for (const t of history) for (const id of [t.fromStationId, t.toStationId]) if (!ids.includes(id)) ids.push(id)
+    for (const t of history) {
+      if (t.routeCode && t.routeCode !== route) continue
+      for (const id of [t.fromStationId, t.toStationId]) if (!ids.includes(id)) ids.push(id)
+    }
     return ids
-  }, [history])
+  }, [history, route])
 
   // Tramos más repetidos
   const frequent = useMemo(() => {
@@ -66,16 +71,17 @@ function Trips() {
     }
     let active = true
     setPlanning(true)
-    planTrip(fromId, toId)
+    planTrip(fromId, toId, route)
       .then((res) => active && setPlan(res.data))
       .catch((err) => active && toast.error(err.message))
       .finally(() => active && setPlanning(false))
     return () => {
       active = false
     }
-  }, [fromId, toId, toast])
+  }, [fromId, toId, route, toast])
 
-  const choose = (from, to) => {
+  const choose = (from, to, tripRoute) => {
+    if (tripRoute && tripRoute !== route) setRoute(tripRoute)
     setFromId(String(from))
     setToId(String(to))
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -88,7 +94,7 @@ function Trips() {
 
   const pay = async () => {
     try {
-      const res = await startTrip(Number(fromId), Number(toId))
+      const res = await startTrip(Number(fromId), Number(toId), route)
       haptic([12, 60, 18])
       setTrip(res.data)
       toast.success(`Pasaje pagado. Nuevo saldo ${formatPrice(res.data.balance)}`)
@@ -129,6 +135,19 @@ function Trips() {
           {activeTrip && <ActiveTripCard />}
 
           <Glass variants={revealItem} strong className="allow-overflow">
+            <div className="row between wrap" style={{ marginBottom: 14 }}>
+              <span className="muted" style={{ fontSize: 13 }}>
+                Troncal
+              </span>
+              <RouteSwitcher
+                value={route}
+                onChange={(code) => {
+                  setRoute(code)
+                  setFromId('')
+                  setToId('')
+                }}
+              />
+            </div>
             <div className="planner">
               <StationPicker
                 label="Origen"
@@ -226,8 +245,8 @@ function Trips() {
               </div>
               <div className="frequent">
                 {frequent.map((t) => (
-                  <button key={`${t.fromStationId}-${t.toStationId}`} type="button" className="frequent-item" onClick={() => choose(t.fromStationId, t.toStationId)}>
-                    <span className={`svc ${t.service === 'Expreso' ? 'express' : ''}`}>{svcCode(t.service)}</span>
+                  <button key={`${t.fromStationId}-${t.toStationId}`} type="button" className="frequent-item" onClick={() => choose(t.fromStationId, t.toStationId, t.routeCode)}>
+                    <span className={`svc ${t.service === 'Expreso' ? 'express' : ''}`}>{svcCode(t)}</span>
                     <span className="frequent-text">
                       <b>
                         {t.fromName} → {t.toName}
@@ -256,7 +275,7 @@ function Trips() {
                 <AnimatePresence initial={false}>
                   {history.map((t) => (
                     <motion.li key={t.id} className="list-item" layout initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-                      <span className={`svc ${t.service === 'Expreso' ? 'express' : ''}`}>{svcCode(t.service)}</span>
+                      <span className={`svc ${t.service === 'Expreso' ? 'express' : ''}`}>{svcCode(t)}</span>
                       <span className="list-text">
                         <b>
                           {t.fromName} → {t.toName}
@@ -269,7 +288,7 @@ function Trips() {
                         variant="ghost"
                         size="sm"
                         icon
-                        onClick={() => choose(t.fromStationId, t.toStationId)}
+                        onClick={() => choose(t.fromStationId, t.toStationId, t.routeCode)}
                         aria-label={`Repetir viaje ${t.fromName} a ${t.toName}`}
                         title="Repetir viaje"
                       >

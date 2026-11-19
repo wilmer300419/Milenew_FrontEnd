@@ -22,6 +22,10 @@ def _get_route(route_code):
     return route
 
 
+def list_routes():
+    return transit_repository.list_routes()
+
+
 def list_stations(route_code=DEFAULT_ROUTE):
     _get_route(route_code)
     return transit_repository.list_stations(route_code)

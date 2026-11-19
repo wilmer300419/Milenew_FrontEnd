@@ -35,9 +35,11 @@ BEGIN
 END;
 $$;
 
--- (v3 cambió parámetros y columnas: se borran antes de recrearlas)
+-- (v3/v6 cambiaron parámetros y columnas: se borran antes de recrearlas)
 DROP FUNCTION IF EXISTS fn_trip_create(INTEGER, VARCHAR, INTEGER, INTEGER, VARCHAR, NUMERIC);
+DROP FUNCTION IF EXISTS fn_trip_create(INTEGER, VARCHAR, INTEGER, INTEGER, VARCHAR, NUMERIC, INTEGER);
 DROP FUNCTION IF EXISTS fn_trip_list(INTEGER, INTEGER);
+DROP FUNCTION IF EXISTS fn_trip_get_active(INTEGER);
 
 -- Pagar y registrar un viaje en UNA transacción: cierra el viaje anterior que
 -- siguiera abierto, descuenta el pasaje (check_violation 23514 si el saldo no
@@ -52,8 +54,8 @@ CREATE OR REPLACE FUNCTION fn_trip_create(
     p_minutes     INTEGER
 )
 RETURNS TABLE (id INTEGER, from_station_id INTEGER, from_name VARCHAR, to_station_id INTEGER,
-               to_name VARCHAR, service VARCHAR, fare NUMERIC, estimated_minutes INTEGER,
-               started_at TIMESTAMPTZ, balance NUMERIC)
+               to_name VARCHAR, service VARCHAR, service_code VARCHAR, route_code VARCHAR, fare NUMERIC,
+               estimated_minutes INTEGER, started_at TIMESTAMPTZ, balance NUMERIC)
 LANGUAGE plpgsql
 AS $$
 DECLARE
@@ -89,22 +91,25 @@ BEGIN
             'Pasaje ' || v_from_name || ' → ' || v_to_name);
 
     RETURN QUERY
-    SELECT t.id, t.from_station_id, v_from_name, t.to_station_id, v_to_name,
-           t.service, t.fare, t.estimated_minutes, t.started_at, v_balance
-    FROM trips t WHERE t.id = v_trip_id;
+    SELECT t.id, t.from_station_id, v_from_name, t.to_station_id, v_to_name, t.service,
+           (CASE WHEN t.service = 'Expreso' THEN r.express_code ELSE r.local_code END)::VARCHAR, r.code,
+           t.fare, t.estimated_minutes, t.started_at, v_balance
+    FROM trips t JOIN routes r ON r.id = t.route_id WHERE t.id = v_trip_id;
 END;
 $$;
 
 CREATE OR REPLACE FUNCTION fn_trip_list(p_user_id INTEGER, p_limit INTEGER DEFAULT 20)
 RETURNS TABLE (id INTEGER, from_station_id INTEGER, from_name VARCHAR, to_station_id INTEGER,
-               to_name VARCHAR, service VARCHAR, fare NUMERIC, estimated_minutes INTEGER,
-               started_at TIMESTAMPTZ, ended_at TIMESTAMPTZ)
+               to_name VARCHAR, service VARCHAR, service_code VARCHAR, route_code VARCHAR, fare NUMERIC,
+               estimated_minutes INTEGER, started_at TIMESTAMPTZ, ended_at TIMESTAMPTZ)
 LANGUAGE sql
 STABLE
 AS $$
-    SELECT t.id, t.from_station_id, sf.name, t.to_station_id, st.name, t.service, t.fare,
-           t.estimated_minutes, t.started_at, t.ended_at
+    SELECT t.id, t.from_station_id, sf.name, t.to_station_id, st.name, t.service,
+           (CASE WHEN t.service = 'Expreso' THEN r.express_code ELSE r.local_code END)::VARCHAR, r.code,
+           t.fare, t.estimated_minutes, t.started_at, t.ended_at
     FROM trips t
+    JOIN routes r ON r.id = t.route_id
     JOIN stations sf ON sf.id = t.from_station_id
     JOIN stations st ON st.id = t.to_station_id
     WHERE t.user_id = p_user_id
@@ -116,14 +121,16 @@ $$;
 -- (duración estimada + 30 min de margen). 0 filas si no hay.
 CREATE OR REPLACE FUNCTION fn_trip_get_active(p_user_id INTEGER)
 RETURNS TABLE (id INTEGER, from_station_id INTEGER, from_name VARCHAR, to_station_id INTEGER,
-               to_name VARCHAR, service VARCHAR, fare NUMERIC, estimated_minutes INTEGER,
-               started_at TIMESTAMPTZ)
+               to_name VARCHAR, service VARCHAR, service_code VARCHAR, route_code VARCHAR, fare NUMERIC,
+               estimated_minutes INTEGER, started_at TIMESTAMPTZ)
 LANGUAGE sql
 STABLE
 AS $$
-    SELECT t.id, t.from_station_id, sf.name, t.to_station_id, st.name, t.service, t.fare,
-           t.estimated_minutes, t.started_at
+    SELECT t.id, t.from_station_id, sf.name, t.to_station_id, st.name, t.service,
+           (CASE WHEN t.service = 'Expreso' THEN r.express_code ELSE r.local_code END)::VARCHAR, r.code,
+           t.fare, t.estimated_minutes, t.started_at
     FROM trips t
+    JOIN routes r ON r.id = t.route_id
     JOIN stations sf ON sf.id = t.from_station_id
     JOIN stations st ON st.id = t.to_station_id
     WHERE t.user_id = p_user_id
