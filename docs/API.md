@@ -127,14 +127,6 @@ transacción y cierra el viaje anterior si seguía abierto. Si no alcanza el sal
 - Sin sesión, `/notifications` devuelve solo los avisos generales; con sesión, también los personales.
 - Cada recarga crea una notificación personal **"Recarga exitosa"**.
 
-## Productos
-
-| Método | Ruta | Notas |
-| --- | --- | --- |
-| GET | `/products?search=&page=&limit=` | `data: Product[]`, `meta: { page, limit, total, totalPages }` |
-| GET | `/products/:id` | |
-| POST · PUT · PATCH · DELETE | `/products[/:id]` 🔒 | `{ name, price, quantity?, description? }` |
-
 ## Salud
 
 `GET /health` → `{ api: "ok", database: "ok" }`, o 503 si no hay base de datos.
@@ -155,4 +147,3 @@ transacción y cierra el viaje anterior si seguía abierto. Si no alcanza el sal
 | buses / operador | `fn_vehicle_list_by_route`, `fn_vehicle_get_by_driver`, `fn_vehicle_assign_driver` |
 | preferencias / avisos leídos | `fn_preferences_get`, `fn_preferences_update`, `fn_notification_mark_read`, `fn_notification_mark_all_read`, `fn_notification_unread_count` |
 | viajes / favoritas / movimientos | `fn_trip_create`, `fn_trip_list`, `fn_trip_get_active`, `fn_trip_finish`, `fn_favorite_list`, `fn_favorite_add`, `fn_favorite_remove`, `fn_wallet_transaction_list` |
-| productos | `fn_product_list`, `fn_product_get_by_id`, `fn_product_create`, `fn_product_update`, `fn_product_delete` |

@@ -79,12 +79,3 @@ FROM (VALUES
     ('Recarga tu tarjeta TuLlave', 'Ahora puedes recargar desde la app sin hacer fila.', INTERVAL '2 days')
 ) AS v(title, description, ago)
 WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE user_id IS NULL);
-
--- Productos de ejemplo (página Productos)
-INSERT INTO products (name, description, price, quantity)
-SELECT * FROM (VALUES
-    ('Tarjeta TuLlave',          'Tarjeta personalizada',  7000.00, 100),
-    ('Porta tarjeta Milenew',    'Funda plástica',          5000.00, 50),
-    ('Mapa impreso del sistema', 'Mapa plegable',          3000.00, 200)
-) AS seed(name, description, price, quantity)
-WHERE NOT EXISTS (SELECT 1 FROM products);

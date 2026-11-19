@@ -30,8 +30,9 @@ pytestmark = pytest.mark.skipif(not ADMIN_URL, reason="TEST_DATABASE_ADMIN_URL n
 
 
 def _sql_files():
+    """Archivos en el orden de scripts/01_init.sql (\\ir = relativo a scripts/)."""
     master = (DB_DIR / "scripts" / "01_init.sql").read_text(encoding="utf-8")
-    return re.findall(r"^\\i\s+(\S+)", master, flags=re.M)
+    return [(DB_DIR / "scripts" / rel).resolve() for rel in re.findall(r"^\\ir\s+(\S+)", master, flags=re.M)]
 
 
 @pytest.fixture(scope="session")
@@ -44,8 +45,8 @@ def database():
         conn.execute(f"CREATE DATABASE {TEST_DB}")
 
     with psycopg.connect(ADMIN_URL, dbname=TEST_DB) as conn:
-        for rel in _sql_files():
-            conn.execute((DB_DIR / rel).read_text(encoding="utf-8"))
+        for path in _sql_files():
+            conn.execute(path.read_text(encoding="utf-8"))
         role_sql = (DB_DIR / "scripts" / "02_app_role.sql").read_text(encoding="utf-8")
         role_sql = re.sub(r"^\\set.*$", "", role_sql, flags=re.M)
         role_sql = role_sql.replace(":app_password", f"'{TEST_ROLE_PASSWORD}'").replace("milenew_app", TEST_ROLE)
@@ -67,7 +68,6 @@ def app(database):
         conn.execute("DELETE FROM incidents")
         conn.execute("DELETE FROM trips")
         conn.execute("DELETE FROM notifications WHERE user_id IS NOT NULL")
-        conn.execute("DELETE FROM products WHERE id > 3")
         conn.commit()
 
     admin = conninfo_to_dict(ADMIN_URL)
@@ -119,5 +119,13 @@ def driver(app, client):
     result = app.test_cli_runner().invoke(args=["seed-demo-users"])
     assert result.exit_code == 0, result.output
     res = client.post("/api/auth/login", json={"email": "conductor@milenew.co", "password": "Conductor123"})
+    assert res.status_code == 200, res.get_json()
+    return res.get_json()["data"]
+
+
+@pytest.fixture
+def admin(app, client, driver):
+    """Central (rol admin), creada por seed-demo-users junto al conductor."""
+    res = client.post("/api/auth/login", json={"email": "central@milenew.co", "password": "Central123"})
     assert res.status_code == 200, res.get_json()
     return res.get_json()["data"]
