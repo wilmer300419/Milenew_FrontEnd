@@ -144,3 +144,10 @@ vite.config.ts.timestamp-*
 
 # OS files
 .DS_Store
+
+# Python (backend)
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+.pytest_cache/

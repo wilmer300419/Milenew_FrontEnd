@@ -1,0 +1,614 @@
+/* =============================================================
+   Vidrio líquido (translúcido y esmerilado) + componentes base
+   ============================================================= */
+.glass {
+  position: relative;
+  background: var(--glass-tint), var(--glass);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--glass-shadow);
+  overflow: hidden;
+  transition: background 0.5s var(--ease), border-color 0.5s var(--ease);
+}
+
+/* Reflejo especular que sigue al puntero (--mx/--my los pone Glass.jsx) */
+.glass::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(380px circle at var(--mx, 50%) var(--my, -40%), var(--glass-glow), transparent 60%);
+  opacity: var(--glow, 0);
+  transition: opacity 0.4s var(--ease);
+  z-index: 0;
+}
+
+/* Borde refractado: filo de luz arriba que se apaga hacia abajo */
+.glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  padding: 1px;
+  background: linear-gradient(165deg, var(--glass-edge), transparent 38%, transparent 70%, var(--glass-border));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+.glass > * {
+  position: relative;
+  z-index: 1;
+}
+
+.glass.strong {
+  background: var(--glass-tint), var(--glass-strong);
+}
+
+/* panel profundo (TuLlave, ticket, cabecera de operador) */
+.glass.dark {
+  --text: #f1efea;
+  --text-2: #c8c5bf;
+  --muted: rgba(241, 239, 234, 0.6);
+  --fill: rgba(255, 255, 255, 0.06);
+  --fill-2: rgba(255, 255, 255, 0.1);
+  --line: rgba(255, 255, 255, 0.1);
+  background: var(--glass-tint), var(--glass-deep);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+}
+
+.card {
+  padding: clamp(18px, 2.4vw, 26px);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.card-head .title-md {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.card-head .segmented {
+  max-width: 100%;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--pill);
+  font-size: 12px;
+  font-weight: 550;
+  background: var(--fill-2);
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.chip.red {
+  background: var(--fill-2);
+  color: var(--text-2);
+}
+
+.chip.yellow {
+  background: var(--yellow-soft);
+  color: var(--yellow-text);
+}
+
+.chip.ink {
+  background: var(--contrast);
+  color: var(--on-contrast);
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: pulse 1.8s var(--ease) infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(180, 60, 58, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 9px rgba(180, 60, 58, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(180, 60, 58, 0);
+  }
+}
+
+/* ------------------------------------------------ botones */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 22px;
+  border-radius: var(--pill);
+  border: 0;
+  font-weight: 600;
+  font-size: 14.5px;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  isolation: isolate;
+  transition: background 0.25s var(--ease), color 0.25s var(--ease), opacity 0.2s;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn.sm {
+  height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.btn.lg {
+  height: 54px;
+  padding: 0 28px;
+  font-size: 15.5px;
+}
+
+.btn.block {
+  width: 100%;
+}
+
+.btn.icon {
+  width: 46px;
+  padding: 0;
+}
+
+.btn.icon.sm {
+  width: 36px;
+}
+
+.btn.primary {
+  background: var(--contrast);
+  color: var(--on-contrast);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), var(--shadow-pop);
+}
+
+.btn.accent {
+  background: var(--red);
+  color: var(--on-accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 10px 24px -12px rgba(180, 60, 58, 0.8);
+}
+
+.btn.yellow {
+  background: var(--yellow);
+  color: var(--on-yellow);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 10px 24px -12px rgba(198, 163, 70, 0.7);
+}
+
+.btn.glass-btn {
+  background: var(--fill-2);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  color: var(--text);
+  box-shadow: inset 0 1px 0 var(--glass-edge), inset 0 0 0 1px var(--line);
+}
+
+.btn.glass-btn:hover:not(:disabled) {
+  background: var(--fill-hover);
+}
+
+.btn.ghost {
+  background: transparent;
+  color: var(--text-2);
+}
+
+.btn.ghost:hover {
+  background: var(--fill);
+}
+
+/* brillo que cruza el botón al pasar el mouse */
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.22) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.7s var(--ease);
+}
+
+.btn:hover:not(:disabled)::after {
+  transform: translateX(120%);
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ------------------------------------------------ campos */
+.field {
+  position: relative;
+  display: block;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  height: 56px;
+  padding: 22px 16px 8px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+  font-size: 15px;
+  transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease), background 0.25s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.field select option {
+  background: var(--bg-2);
+  color: var(--text);
+}
+
+.field.has-icon input,
+.field.has-icon select {
+  padding-left: 46px;
+}
+
+.field .field-icon {
+  position: absolute;
+  left: 16px;
+  top: 18px;
+  color: var(--faint);
+  pointer-events: none;
+  transition: color 0.25s;
+}
+
+.field label {
+  position: absolute;
+  left: 16px;
+  top: 18px;
+  font-size: 15px;
+  color: var(--muted);
+  pointer-events: none;
+  transform-origin: left top;
+  transition: transform 0.25s var(--ease), color 0.25s;
+}
+
+.field.has-icon label {
+  left: 46px;
+}
+
+.field input:focus + label,
+.field input:not(:placeholder-shown) + label,
+.field select + label {
+  transform: translateY(-11px) scale(0.76);
+  color: var(--text-2);
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: var(--line-strong);
+  background: var(--input-bg-focus);
+  box-shadow: 0 0 0 4px var(--fill);
+}
+
+.field:focus-within .field-icon {
+  color: var(--text);
+}
+
+.field.invalid input {
+  border-color: var(--red);
+  box-shadow: 0 0 0 4px var(--red-soft);
+}
+
+.field .field-error {
+  display: block;
+  margin: 6px 4px 0;
+  font-size: 12.5px;
+  color: var(--red-text);
+}
+
+.field .field-action {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  height: 40px;
+  width: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.field select {
+  cursor: pointer;
+  padding-right: 40px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 20px) 26px, calc(100% - 15px) 26px;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+  color: var(--text-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--red);
+}
+
+/* ------------------------------------------------ alertas */
+.alert {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: var(--r-sm);
+  font-size: 13.5px;
+  background: var(--red-soft);
+  color: var(--red-text);
+  border: 1px solid rgba(180, 60, 58, 0.25);
+}
+
+.alert.info {
+  background: var(--fill);
+  color: var(--text-2);
+  border-color: var(--line);
+}
+
+.alert.ok {
+  background: var(--yellow-soft);
+  color: var(--yellow-text);
+  border-color: rgba(198, 163, 70, 0.3);
+}
+
+/* ------------------------------------------------ skeleton */
+.skeleton {
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--fill), var(--fill-hover), var(--fill));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.empty {
+  padding: 22px 6px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+/* ---- profundidad: el vidrio inclinable flota sobre la ciudad */
+.glass.tilt {
+  will-change: transform;
+  transform-style: preserve-3d;
+}
+
+.glass.tilt:hover {
+  box-shadow:
+    var(--glass-shadow),
+    0 50px 90px -40px rgba(0, 0, 0, 0.55);
+}
+
+/* los elementos internos "salen" un poco del panel */
+.glass.tilt > .card-head,
+.glass.tilt .lift {
+  transform: translateZ(18px);
+}
+
+/* ---- paneles que deben dejar salir menús desplegables */
+.glass.allow-overflow,
+.topbar-inner.glass {
+  overflow: visible;
+}
+
+/* foco visible dentro de controles con overflow (no se recorta) */
+.segmented button:focus-visible,
+.tab:focus-visible,
+.picker-option:focus-visible {
+  outline-offset: -3px;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 550;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.link-btn:hover {
+  color: var(--text);
+  background: var(--fill);
+}
+
+/* ---- "No soy un robot" con el estilo de la app (reCAPTCHA invisible por debajo) */
+.human {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.human-check {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  height: 56px;
+  padding: 0 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.25s var(--ease), background 0.25s var(--ease);
+}
+
+.human-check:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  background: var(--input-bg-focus);
+}
+
+.human-check:disabled {
+  cursor: default;
+}
+
+.human-box {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 0 0 2px var(--line-strong);
+  color: var(--on-yellow);
+  transition: background 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.human-box .spinner {
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+}
+
+.human-check.done {
+  border-color: var(--yellow-soft);
+}
+
+.human-check.done .human-box {
+  background: var(--yellow);
+  box-shadow: none;
+}
+
+.human-check.error .human-label {
+  color: var(--red-text);
+}
+
+.human-check.unavailable,
+.human-check.loading {
+  color: var(--muted);
+}
+
+.human-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.human-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  color: var(--faint);
+}
+
+.human-legal {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.human-legal a {
+  color: var(--text-2);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 2px;
+}
+
+/* el widget invisible y su sello quedan fuera de la vista (la atribución va en .human-legal) */
+.human-holder,
+.grecaptcha-badge {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0 0 0 0) !important;
+  white-space: nowrap;
+}
+
+/* ---- autocompletado del navegador: sin fondo amarillo, mismo estilo de campo */
+.field input:-webkit-autofill,
+.field input:-webkit-autofill:hover,
+.field input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--text);
+  caret-color: var(--text);
+  box-shadow: 0 0 0 1000px var(--bg-2) inset;
+  transition: background-color 9999s ease-out 0s;
+}
+
+.field input:autofill {
+  filter: none;
+  background-color: var(--bg-2);
+  color: var(--text);
+}
