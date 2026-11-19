@@ -107,7 +107,9 @@ npm run lint
 npx playwright install chromium && npm run e2e   # end-to-end + accessibility (needs DB + demo users)
 ```
 
-See [docs/API.md](docs/API.md) for the full API contract.
+See [docs/API.md](docs/API.md) for the full API contract, [CONTRIBUTING.md](CONTRIBUTING.md) for the
+branch workflow (GitFlow: `main`, `develop`, `feature/*`) and [docs/github-setup.md](docs/github-setup.md)
+for the one-time repository settings.
 
 ---
 

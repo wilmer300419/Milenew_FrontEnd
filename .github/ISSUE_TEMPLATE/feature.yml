@@ -1,0 +1,33 @@
+name: Nueva funcionalidad
+description: Proponer algo nuevo para Milenew
+labels: [enhancement]
+body:
+  - type: textarea
+    id: historia
+    attributes:
+      label: Historia de usuario
+      placeholder: Como pasajero quiero … para …
+    validations:
+      required: true
+  - type: textarea
+    id: criterios
+    attributes:
+      label: Criterios de aceptación
+      placeholder: |
+        - [ ] …
+        - [ ] …
+    validations:
+      required: true
+  - type: checkboxes
+    id: equipos
+    attributes:
+      label: Equipos involucrados
+      options:
+        - label: FrontEnd
+        - label: BackEnd
+        - label: Base de datos
+  - type: textarea
+    id: contrato
+    attributes:
+      label: Contrato de API (si aplica)
+      description: Endpoint, método, JSON de entrada y salida. Se acuerda ANTES de programar.

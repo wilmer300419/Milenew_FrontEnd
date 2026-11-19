@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Contrato de la API
+    url: https://github.com/wilmer300419/Milenew_FrontEnd/blob/develop/docs/API.md
+    about: Revisa los endpoints existentes antes de proponer uno nuevo.
