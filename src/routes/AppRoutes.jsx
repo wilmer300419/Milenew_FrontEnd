@@ -1,42 +1,59 @@
 import { Suspense, lazy } from 'react'
-import { Routes, Route } from 'react-router-dom'
-import Home from '../pages/Home.jsx'
-import Login from '../pages/Login.jsx'
-import RecoverAccount from '../pages/RecoverAccount.jsx'
-import Profile from '../pages/Profile.jsx'
-import Products from '../pages/Products.jsx'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import ProtectedRoute, { GuestRoute } from './ProtectedRoute.jsx'
+import AppShell from '../components/layout/AppShell.jsx'
+import Splash from '../components/layout/Splash.jsx'
+import Landing from '../pages/Landing.jsx'
+import Login from '../pages/auth/Login.jsx'
+import Register from '../pages/auth/Register.jsx'
+import RecoverAccount from '../pages/auth/RecoverAccount.jsx'
 import NotFound from '../pages/NotFound.jsx'
-import ProtectedRoute from './ProtectedRoute.jsx'
+import Privacy from '../pages/legal/Privacy.jsx'
+import Terms from '../pages/legal/Terms.jsx'
 
-// El panel de la Troncal carga canvas + SVG pesados: se separa del bundle
-// principal para no penalizar a Home/Login/Products (MIL-44 · optimización).
-const Troncal = lazy(() => import('../pages/Troncal.jsx'))
+// Páginas con sesión: se cargan bajo demanda para que el login sea liviano
+const PassengerHome = lazy(() => import('../pages/passenger/PassengerHome.jsx'))
+const Live = lazy(() => import('../pages/passenger/Live.jsx'))
+const Trips = lazy(() => import('../pages/passenger/Trips.jsx'))
+const Wallet = lazy(() => import('../pages/passenger/Wallet.jsx'))
+const Profile = lazy(() => import('../pages/Profile.jsx'))
+const Operator = lazy(() => import('../pages/operator/Operator.jsx'))
+const CentralHome = lazy(() => import('../pages/central/CentralHome.jsx'))
+const CentralChat = lazy(() => import('../pages/central/CentralChat.jsx'))
+const CentralFleet = lazy(() => import('../pages/central/CentralFleet.jsx'))
+
+const PASSENGER = ['user']
+const OPERATOR = ['driver']
+const CENTRAL = ['admin']
 
 function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/recuperar-cuenta" element={<RecoverAccount />} />
-      <Route path="/products" element={<Products />} />
-      <Route
-        path="/perfil"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/troncal"
-        element={
-          <Suspense fallback={<p className="empty">Cargando panel…</p>}>
-            <Troncal />
-          </Suspense>
-        }
-      />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Suspense fallback={<Splash />}>
+      <Routes>
+          <Route path="/" element={<GuestRoute><Landing /></GuestRoute>} />
+          <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+          <Route path="/registro" element={<GuestRoute><Register /></GuestRoute>} />
+          <Route path="/recuperar-cuenta" element={<RecoverAccount />} />
+          <Route path="/privacidad" element={<Privacy />} />
+          <Route path="/terminos" element={<Terms />} />
+
+          <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
+            <Route path="/app" element={<ProtectedRoute roles={PASSENGER}><PassengerHome /></ProtectedRoute>} />
+            <Route path="/app/en-vivo" element={<Live />} />
+            <Route path="/app/viajes" element={<ProtectedRoute roles={PASSENGER}><Trips /></ProtectedRoute>} />
+            <Route path="/app/tullave" element={<ProtectedRoute roles={PASSENGER}><Wallet /></ProtectedRoute>} />
+            <Route path="/app/perfil" element={<Profile />} />
+            <Route path="/operador" element={<ProtectedRoute roles={OPERATOR}><Operator /></ProtectedRoute>} />
+            <Route path="/central" element={<ProtectedRoute roles={CENTRAL}><CentralHome /></ProtectedRoute>} />
+            <Route path="/central/mensajes" element={<ProtectedRoute roles={CENTRAL}><CentralChat /></ProtectedRoute>} />
+            <Route path="/central/flota" element={<ProtectedRoute roles={CENTRAL}><CentralFleet /></ProtectedRoute>} />
+          </Route>
+
+          <Route path="/troncal" element={<Navigate to="/app/en-vivo" replace />} />
+          <Route path="/perfil" element={<Navigate to="/app/perfil" replace />} />
+          <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   )
 }
 

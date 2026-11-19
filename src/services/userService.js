@@ -1,13 +1,22 @@
 import api from './api'
 
-// Obtiene los datos del usuario autenticado (requiere sesión iniciada).
 export const getProfile = () => api.get('/users/me')
 
-// Actualiza datos básicos del perfil (nombre, correo, etc.).
 export const updateProfile = (profileData) => api.put('/users/me', profileData)
 
-// Cambia la contraseña estando autenticado (distinto del flujo de
-// recuperación: aquí el usuario ya tiene sesión y confirma su contraseña
-// actual).
 export const changePassword = ({ currentPassword, newPassword }) =>
   api.put('/users/me/password', { currentPassword, newPassword })
+
+export const getFavorites = () => api.get('/users/me/favorites')
+
+export const addFavorite = (stationId) => api.put(`/users/me/favorites/${stationId}`)
+
+export const removeFavorite = (stationId) => api.delete(`/users/me/favorites/${stationId}`)
+
+export const getPreferences = () => api.get('/users/me/preferences')
+
+/** patch: { theme?, notifyArrivals?, notifyNews? } */
+export const updatePreferences = (patch) => api.put('/users/me/preferences', patch)
+
+/** Derecho de supresión: borra la cuenta. Exige la contraseña actual. */
+export const deleteAccount = (password) => api.delete('/users/me', { data: { password } })

@@ -1,0 +1,75 @@
+# Milenew completo: PostgreSQL + API (Flask/gunicorn) + Web (nginx con la app).
+#   cp deploy/.env.example deploy/.env    # y rellena las claves
+#   docker compose --env-file deploy/.env up --build
+#   → http://localhost:8080
+#
+# Solo el contenedor "web" publica un puerto. La base de datos y la API quedan en la
+# red interna: el navegador nunca puede llegar a PostgreSQL.
+name: milenew
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: milenew
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en deploy/.env}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?Define APP_DB_PASSWORD en deploy/.env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./database:/milenew/database:ro
+      - ./database/docker/initdb.sh:/docker-entrypoint-initdb.d/10-milenew.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d milenew']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?Define SECRET_KEY en deploy/.env}
+      DATABASE_HOST: db
+      DATABASE_NAME: milenew
+      DATABASE_USER: milenew_app
+      DATABASE_PASSWORD: ${APP_DB_PASSWORD}
+      CORS_ORIGINS: ${PUBLIC_URL:-http://localhost:8080}
+      TRUST_PROXY: 'true'
+      FORWARDED_ALLOW_IPS: '*'
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      RATELIMIT_STORAGE_URI: redis://redis:6379
+      RECAPTCHA_SECRET_KEY: ${RECAPTCHA_SECRET_KEY:-}
+      TWO_FACTOR_ENABLED: ${TWO_FACTOR_ENABLED:-false}
+      MAIL_SERVER: ${MAIL_SERVER:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-Milenew <no-reply@milenew.local>}
+      SEED_DEMO_USERS: ${SEED_DEMO_USERS:-false}
+
+  web:
+    build:
+      context: .
+      args:
+        VITE_RECAPTCHA_SITE_KEY: ${VITE_RECAPTCHA_SITE_KEY:-}
+        VITE_CONTACT_EMAIL: ${CONTACT_EMAIL:-}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '${WEB_PORT:-8080}:80'
+
+volumes:
+  db-data:

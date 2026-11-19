@@ -1,0 +1,10 @@
+# Quién debe revisar cada parte. GitHub pide su aprobación automáticamente en los PR.
+# Reemplaza los usuarios por los de cada equipo (deben tener acceso al repositorio)
+# y quita el "#" de la línea para activarla.
+#
+# /src/          @usuario-frontend-1 @usuario-frontend-2
+# /e2e/          @usuario-frontend-1
+# /backend/      @usuario-backend-1 @usuario-backend-2
+# /database/     @usuario-bd-1 @usuario-bd-2
+# /docs/API.md   @usuario-frontend-1 @usuario-backend-1
+# /.github/      @wilmer300419

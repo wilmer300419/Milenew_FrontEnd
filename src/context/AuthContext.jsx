@@ -1,41 +1,71 @@
-import { createContext, useContext, useState } from 'react'
-import { logout as logoutRequest } from '../services/authService'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import * as authService from '../services/authService'
+import { getProfile } from '../services/userService'
 
 const AuthContext = createContext(null)
-const TOKEN_KEY = 'milenew_token'
+
+const ROLE_LABELS = { user: 'Pasajero', driver: 'Operador', admin: 'Central' }
+const HOMES = { user: '/app', driver: '/operador', admin: '/central' }
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
+  // Al abrir la app preguntamos al BackEnd si la cookie de sesión sigue vigente
+  const [loading, setLoading] = useState(true)
 
-  // El caller decide dónde guardar el token: localStorage si marcó
-  // "recordar datos", sessionStorage si no (se pierde al cerrar el navegador).
-  const loginUser = (userData, token, rememberMe) => {
-    const storage = rememberMe ? localStorage : sessionStorage
-    if (token) storage.setItem(TOKEN_KEY, token)
-    setUser(userData ?? null)
-  }
+  useEffect(() => {
+    let active = true
+    getProfile()
+      .then((res) => active && setUser(res?.data ?? null))
+      .catch(() => active && setUser(null))
+      .finally(() => active && setLoading(false))
+    return () => {
+      active = false
+    }
+  }, [])
 
-  const logout = async () => {
+  // api.js emite este evento cuando el BackEnd responde 401 (sesión vencida o cerrada)
+  useEffect(() => {
+    const onExpired = () => setUser(null)
+    window.addEventListener('auth:logout', onExpired)
+    return () => window.removeEventListener('auth:logout', onExpired)
+  }, [])
+
+  // La cookie ya la puso el BackEnd; aquí solo guardamos quién es
+  const loginUser = useCallback((userData) => setUser(userData ?? null), [])
+
+  const logout = useCallback(async () => {
     try {
-      await logoutRequest()
+      await authService.logout()
+    } catch {
+      // aunque falle, la interfaz queda sin sesión
     } finally {
-      // Pase lo que pase con la petición al BackEnd, limpiamos el estado
-      // local para que la interfaz refleje que ya no hay sesión.
-      localStorage.removeItem(TOKEN_KEY)
-      sessionStorage.removeItem(TOKEN_KEY)
       setUser(null)
     }
-  }
+  }, [])
 
-  const value = { user, setUser, loginUser, logout }
+  const value = useMemo(
+    () => ({
+      user,
+      setUser,
+      loading,
+      loginUser,
+      logout,
+      isPassenger: user?.role === 'user',
+      isOperator: user?.role === 'driver',
+      isAdmin: user?.role === 'admin',
+      roleLabel: ROLE_LABELS[user?.role] ?? '',
+    }),
+    [user, loading, loginUser, logout],
+  )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {
   const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth debe usarse dentro de un AuthProvider')
-  }
+  if (!context) throw new Error('useAuth debe usarse dentro de un AuthProvider')
   return context
 }
+
+/** Ruta de inicio según el rol. */
+export const homeFor = (user) => HOMES[user?.role] ?? '/app'

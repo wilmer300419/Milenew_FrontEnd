@@ -1,31 +1,53 @@
 import api from './api'
 
-// Contrato propuesto para el equipo de BackEnd (ver docs/README · Contract Between Teams).
-// Ninguno de estos endpoints existe todavía: la UI que los consume debe manejar el
-// loading/error de useFetch en vez de asumir que la respuesta llega.
+export const ROUTE_ID = 'caracas-b75'
 
-export const getStations = () => api.get('/transit/stations')
+export const getRoutes = () => api.get('/transit/routes')
 
-export const getRouteStatus = (routeId) => api.get(`/transit/routes/${routeId}/status`)
+export const getStations = (routeId = ROUTE_ID) => api.get('/transit/stations', { params: { route: routeId } })
 
-export const getWallet = () => api.get('/wallet')
+export const getRouteVehicles = (routeId = ROUTE_ID) => api.get(`/transit/routes/${routeId}/vehicles`)
 
-export const rechargeWallet = (amount) => api.post('/wallet/recharge', { amount })
+export const getStationArrivals = (stationId, routeId = ROUTE_ID) =>
+  api.get(`/transit/stations/${stationId}/arrivals`, { params: { route: routeId } })
 
-export const getNotifications = () => api.get('/notifications')
+export const planTrip = (fromId, toId, routeId = ROUTE_ID) =>
+  api.get('/transit/trip-plan', { params: { from: fromId, to: toId, route: routeId } })
 
-export const planTripRequest = (fromId, toId) =>
-  api.get('/transit/trip-plan', { params: { from: fromId, to: toId } })
-
-export const getTelemetry = (vehicleId) => api.get(`/transit/vehicles/${vehicleId}/telemetry`)
+export const getIncidentCategories = () => api.get('/transit/incident-categories')
 
 export const postIncident = (payload) => api.post('/transit/incidents', payload)
 
+export const getNotifications = () => api.get('/notifications')
+
+// ---- Operador (rol driver)
+export const getMyVehicle = () => api.get('/transit/my-vehicle')
+
 export const getChecklist = () => api.get('/transit/checklist')
 
-export const postChecklistItem = (itemId, done) =>
-  api.post('/transit/checklist', { itemId, done })
+export const postChecklistItem = (itemId, done) => api.post('/transit/checklist', { itemId, done })
 
 export const getChatMessages = () => api.get('/transit/operations-chat')
 
 export const postChatMessage = (message) => api.post('/transit/operations-chat', { message })
+
+export const markNotificationRead = (id) => api.post(`/notifications/${id}/read`)
+
+export const markAllNotificationsRead = () => api.post('/notifications/read-all')
+
+// ---- Turno, novedades/SOS y avisos del operador
+export const getShift = () => api.get('/transit/shift')
+
+export const startShift = () => api.post('/transit/shift/start')
+
+export const setShiftBreak = (active) => api.post('/transit/shift/break', { active })
+
+export const endShift = () => api.post('/transit/shift/end')
+
+export const getDriverReports = () => api.get('/transit/driver-reports')
+
+export const postDriverReport = (payload) => api.post('/transit/driver-reports', payload)
+
+export const getDriverNotices = () => api.get('/transit/driver-notices')
+
+export const ackDriverNotice = (id) => api.post(`/transit/driver-notices/${id}/ack`)

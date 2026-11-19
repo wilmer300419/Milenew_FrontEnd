@@ -1,0 +1,20 @@
+# Revisa cada semana si hay versiones nuevas (con parches de seguridad) y abre PRs hacia develop.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: develop
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+    groups:
+      dependencias-frontend:
+        patterns: ['*']
+  - package-ecosystem: pip
+    directory: /backend
+    target-branch: develop
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule: { interval: monthly }
