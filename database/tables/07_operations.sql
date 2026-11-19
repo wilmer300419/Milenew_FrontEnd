@@ -29,3 +29,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_chat_driver ON chat_messages (driver_id, created_at DESC);
+
+-- ---- v4: mensajes leídos (para contadores en central y en el panel del operador)
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_chat_unread ON chat_messages (driver_id, sender) WHERE read_at IS NULL;

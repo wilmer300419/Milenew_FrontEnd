@@ -61,3 +61,8 @@ ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS driver_id INTEGER REFERENCES users
 ALTER TABLE vehicles DROP CONSTRAINT IF EXISTS chk_vehicles_service;
 ALTER TABLE vehicles ADD CONSTRAINT chk_vehicles_service CHECK (service IN ('Corriente', 'Expreso'));
 CREATE UNIQUE INDEX IF NOT EXISTS uq_vehicles_driver ON vehicles (driver_id) WHERE driver_id IS NOT NULL;
+
+-- ---- v4: seguimiento de incidencias desde la central (idempotente)
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS resolution_note VARCHAR(500);
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS handled_by INTEGER REFERENCES users (id) ON DELETE SET NULL;
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();

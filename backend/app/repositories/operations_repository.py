@@ -16,3 +16,7 @@ def list_chat(driver_id, limit=30):
 
 def create_chat_message(driver_id, sender, text):
     return call_function_one("fn_chat_create", driver_id, sender, text)
+
+
+def mark_read(driver_id, sender):
+    return call_function_one("fn_chat_mark_read", driver_id, sender)["fn_chat_mark_read"]

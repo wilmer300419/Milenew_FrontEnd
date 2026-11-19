@@ -32,7 +32,7 @@ function PreferenceRow({ icon: Icon, title, text, checked, onChange }) {
 }
 
 function Profile() {
-  const { user, setUser, isOperator } = useAuth()
+  const { user, setUser, isPassenger, roleLabel } = useAuth()
   const { prefs, update } = usePreferences()
   const toast = useToast()
   const [name, setName] = useState(user?.name ?? '')
@@ -101,7 +101,7 @@ function Profile() {
           </h1>
           <p className="row" style={{ gap: 8 }}>
             <span className="chip">
-              <ShieldCheck size={13} /> {isOperator ? 'Operador' : 'Pasajero'}
+              <ShieldCheck size={13} /> {roleLabel}
             </span>
             <span className="muted">{user?.email}</span>
           </p>
@@ -141,7 +141,7 @@ function Profile() {
               onChange={(theme) => savePref({ theme }, theme === 'dark' ? 'Tema oscuro activado' : 'Tema claro activado')}
             />
           </div>
-          {!isOperator && (
+          {isPassenger && (
             <PreferenceRow
               icon={Navigation}
               title="Aviso de llegada"

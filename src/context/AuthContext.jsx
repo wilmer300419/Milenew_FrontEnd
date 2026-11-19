@@ -5,6 +5,9 @@ import { clearToken, getToken, saveToken } from '../services/tokenStorage'
 
 const AuthContext = createContext(null)
 
+const ROLE_LABELS = { user: 'Pasajero', driver: 'Operador', admin: 'Central' }
+const HOMES = { user: '/app', driver: '/operador', admin: '/central' }
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   // true mientras se valida un token guardado (p. ej. al recargar la página)
@@ -52,7 +55,10 @@ export function AuthProvider({ children }) {
       loading,
       loginUser,
       logout,
-      isOperator: user?.role === 'driver' || user?.role === 'admin',
+      isPassenger: user?.role === 'user',
+      isOperator: user?.role === 'driver',
+      isAdmin: user?.role === 'admin',
+      roleLabel: ROLE_LABELS[user?.role] ?? '',
     }),
     [user, loading, loginUser, logout],
   )
@@ -67,4 +73,4 @@ export function useAuth() {
 }
 
 /** Ruta de inicio según el rol. */
-export const homeFor = (user) => (user?.role === 'driver' || user?.role === 'admin' ? '/operador' : '/app')
+export const homeFor = (user) => HOMES[user?.role] ?? '/app'

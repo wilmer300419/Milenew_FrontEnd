@@ -24,7 +24,7 @@ const FILTERS = [
 
 /** Buses y recorrido: estaciones, próximas llegadas y próximas paradas de cada bus. */
 function Live() {
-  const { isOperator } = useAuth()
+  const { isPassenger } = useAuth()
   const toast = useToast()
   const { stations, loading: loadingStations, error } = useStations()
   const { vehicles, fetchedAt } = useVehicles()
@@ -53,7 +53,7 @@ function Live() {
           </h1>
           <p>Elige una estación para ver cuándo llega el próximo bus.</p>
         </div>
-        {!isOperator && (
+        {isPassenger && (
           <Button variant="glass" onClick={() => setIncidentOpen(true)}>
             <AlertTriangle size={16} /> Reportar incidencia
           </Button>

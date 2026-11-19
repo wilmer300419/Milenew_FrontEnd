@@ -9,13 +9,13 @@ const POLL_MS = 20000
 
 /** Viaje en curso del pasajero, compartido por la barra, Inicio y Viajes. */
 export function TripProvider({ children }) {
-  const { user, isOperator } = useAuth()
+  const { isPassenger } = useAuth()
   const { prefs } = usePreferences()
   const toast = useToast()
   const [trip, setTrip] = useState(null)
   const [loaded, setLoaded] = useState(false)
   const notified = useRef(null)
-  const enabled = Boolean(user) && !isOperator
+  const enabled = isPassenger
 
   const refresh = useCallback(async () => {
     if (!enabled) return

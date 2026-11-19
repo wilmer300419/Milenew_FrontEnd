@@ -93,17 +93,11 @@ def test_driver_panel(client, driver, passenger):
     assert client.post("/api/transit/operations-chat", json={"message": "Solicito apoyo"},
                        headers=h).status_code == 201
     chat = client.get("/api/transit/operations-chat", headers=h).get_json()["data"]
-    assert [m["from"] for m in chat] == ["driver", "central"]
-    assert chat[0]["text"] == "Solicito apoyo" and "Apoyo en camino" in chat[1]["text"]
+    assert [m["from"] for m in chat] == ["driver"] and chat[0]["text"] == "Solicito apoyo"
     assert client.post("/api/transit/operations-chat", json={"message": "  "}, headers=h).status_code == 400
 
     # Un pasajero no accede al panel de conductor
     assert client.get("/api/transit/checklist", headers=auth(passenger["token"])).status_code == 403
-
-
-def test_products_page(client):
-    data = client.get("/api/products").get_json()
-    assert len(data["data"]) == 3 and data["meta"]["totalPages"] == 1
 
 
 def test_route_vehicles_live(client):

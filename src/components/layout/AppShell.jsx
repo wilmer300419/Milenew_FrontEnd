@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { CreditCard, Gauge, Home, LogOut, Map, Route, UserRound } from 'lucide-react'
+import { Bus, CreditCard, Gauge, Home, LayoutDashboard, LogOut, Map, MessageSquare, Route, UserRound } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext.jsx'
 import { useToast } from '../../context/ToastContext.jsx'
 import { TripProvider } from '../../context/TripContext.jsx'
@@ -18,6 +18,14 @@ const PASSENGER_TABS = [
   { to: '/app/en-vivo', label: 'En vivo', icon: Map },
   { to: '/app/viajes', label: 'Viajes', icon: Route },
   { to: '/app/tullave', label: 'TuLlave', icon: CreditCard },
+  { to: '/app/perfil', label: 'Perfil', icon: UserRound },
+]
+
+const CENTRAL_TABS = [
+  { to: '/central', label: 'Central', icon: LayoutDashboard, end: true },
+  { to: '/central/mensajes', label: 'Mensajes', icon: MessageSquare },
+  { to: '/central/flota', label: 'Flota', icon: Bus },
+  { to: '/app/en-vivo', label: 'En vivo', icon: Map },
   { to: '/app/perfil', label: 'Perfil', icon: UserRound },
 ]
 
@@ -47,11 +55,12 @@ function TabLinks({ tabs, layoutId }) {
 
 /** Estructura de la app con sesión: barra superior (escritorio) e inferior (celular). */
 function AppShell() {
-  const { user, logout, isOperator } = useAuth()
+  const { user, logout, isOperator, isAdmin, roleLabel } = useAuth()
   const toast = useToast()
   const navigate = useNavigate()
   const location = useLocation()
-  const tabs = isOperator ? OPERATOR_TABS : PASSENGER_TABS
+  const tabs = isAdmin ? CENTRAL_TABS : isOperator ? OPERATOR_TABS : PASSENGER_TABS
+  const home = isAdmin ? '/central' : isOperator ? '/operador' : '/app'
 
   const handleLogout = async () => {
     await logout()
@@ -68,7 +77,7 @@ function AppShell() {
           </a>
           <header className="topbar" data-no-sand="">
             <div className="topbar-inner glass strong">
-              <Brand to={isOperator ? '/operador' : '/app'} />
+              <Brand to={home} />
               <nav className="tabs desktop-only" aria-label="Principal">
                 <TabLinks tabs={tabs} layoutId="tab-lens-top" />
               </nav>
@@ -80,7 +89,7 @@ function AppShell() {
                 </span>
                 <span className="topbar-name desktop-only">
                   <b>{firstName(user?.name)}</b>
-                  <small>{isOperator ? 'Operador' : 'Pasajero'}</small>
+                  <small>{roleLabel}</small>
                 </span>
                 <button type="button" className="btn glass-btn icon sm" onClick={handleLogout} aria-label="Cerrar sesión" title="Cerrar sesión">
                   <LogOut size={16} />

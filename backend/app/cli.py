@@ -8,6 +8,7 @@ DEMO_DRIVER_VEHICLE = "vagon-02"
 DEMO_USERS = [
     ("Pasajero Demo", "pasajero@milenew.co", "Pasajero123", "user"),
     ("Conductor Demo", "conductor@milenew.co", "Conductor123", "driver"),
+    ("Central Demo", "central@milenew.co", "Central123", "admin"),
 ]
 
 

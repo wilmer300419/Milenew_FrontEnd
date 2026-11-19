@@ -16,9 +16,13 @@ const Trips = lazy(() => import('../pages/passenger/Trips.jsx'))
 const Wallet = lazy(() => import('../pages/passenger/Wallet.jsx'))
 const Profile = lazy(() => import('../pages/Profile.jsx'))
 const Operator = lazy(() => import('../pages/operator/Operator.jsx'))
+const CentralHome = lazy(() => import('../pages/central/CentralHome.jsx'))
+const CentralChat = lazy(() => import('../pages/central/CentralChat.jsx'))
+const CentralFleet = lazy(() => import('../pages/central/CentralFleet.jsx'))
 
-const PASSENGER = ['user', 'admin']
-const OPERATOR = ['driver', 'admin']
+const PASSENGER = ['user']
+const OPERATOR = ['driver']
+const CENTRAL = ['admin']
 
 function AppRoutes() {
   return (
@@ -36,6 +40,9 @@ function AppRoutes() {
             <Route path="/app/tullave" element={<ProtectedRoute roles={PASSENGER}><Wallet /></ProtectedRoute>} />
             <Route path="/app/perfil" element={<Profile />} />
             <Route path="/operador" element={<ProtectedRoute roles={OPERATOR}><Operator /></ProtectedRoute>} />
+            <Route path="/central" element={<ProtectedRoute roles={CENTRAL}><CentralHome /></ProtectedRoute>} />
+            <Route path="/central/mensajes" element={<ProtectedRoute roles={CENTRAL}><CentralChat /></ProtectedRoute>} />
+            <Route path="/central/flota" element={<ProtectedRoute roles={CENTRAL}><CentralFleet /></ProtectedRoute>} />
           </Route>
 
           <Route path="/troncal" element={<Navigate to="/app/en-vivo" replace />} />
