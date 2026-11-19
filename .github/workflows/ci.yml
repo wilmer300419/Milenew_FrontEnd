@@ -12,10 +12,10 @@ concurrency:
 jobs:
   frontend:
     name: Frontend · lint, pruebas y build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -26,7 +26,7 @@ jobs:
 
   backend:
     name: Backend · pytest contra PostgreSQL
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16
@@ -42,8 +42,8 @@ jobs:
     env:
       TEST_DATABASE_ADMIN_URL: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: pip
@@ -53,7 +53,7 @@ jobs:
 
   e2e:
     name: E2E · recorridos completos en el navegador
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # fija: Playwright 1.56 solo instala dependencias en versiones de Ubuntu que conoce
     needs: [frontend, backend]
     services:
       postgres:
@@ -75,12 +75,12 @@ jobs:
       VITE_RECAPTCHA_SITE_KEY: 6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI
       RATELIMIT_ENABLED: 'false'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - run: psql -h localhost -U postgres -d milenew -v ON_ERROR_STOP=1 -f database/scripts/01_init.sql
@@ -90,7 +90,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: failure()
         with:
           name: playwright-report
