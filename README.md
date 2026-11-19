@@ -32,6 +32,62 @@
 
 ---
 
+# ⚡ Quick Start (this repository)
+
+```text
+.
+├── src/, index.html, vite.config.js   → FrontEnd (React + Vite) · TransMilenio app
+├── backend/                           → BackEnd (Flask REST API + Pytest)
+│   ├── app/routes/        HTTP endpoints
+│   ├── app/services/      validation + business logic
+│   ├── app/repositories/  calls to stored functions (fn_*) only
+│   └── tests/             unit tests + integration tests against real PostgreSQL
+├── database/                          → PostgreSQL (tables/, functions/, scripts/)
+└── docs/API.md                        → API contract (endpoints, JSON, status codes)
+```
+
+The FrontEnd **never** talks to PostgreSQL: it only calls `/api/...`. Database credentials exist
+only in `backend/.env`, and the BackEnd only executes the stored functions in `database/functions/`.
+
+### 1. Database
+
+```bash
+cd database
+psql -h localhost -U postgres -f scripts/00_create_database.sql
+psql -h localhost -U postgres -d milenew -f scripts/01_init.sql   # idempotent: re-run it to upgrade an existing DB
+# Optional (recommended): least-privilege role, can only EXECUTE fn_* functions
+psql -h localhost -U postgres -d milenew -v app_password="'change_me'" -f scripts/02_app_role.sql
+```
+
+### 2. BackEnd
+
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate            # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env                # fill in SECRET_KEY and DATABASE_*
+flask seed-demo-users               # pasajero@milenew.co / Pasajero123 · conductor@milenew.co / Conductor123 (bus vagon-02)
+flask assign-bus <email> vagon-03   # assign a bus to another operator
+pytest -v                           # unit tests (no database needed)
+TEST_DATABASE_ADMIN_URL=postgresql://postgres:postgres@localhost:5432/postgres pytest -v   # + integration
+flask run                           # http://localhost:5000/api/health
+```
+
+### 3. FrontEnd
+
+```bash
+cp .env.example .env                # VITE_API_URL=/api (Vite proxies /api to the BackEnd)
+npm install
+npm run dev                         # http://localhost:5173
+npm test                            # component and flow tests (no backend needed)
+npm run lint
+```
+
+See [docs/API.md](docs/API.md) for the full API contract.
+
+---
+
 # 📌 Project Description
 
 Milenew is a web application developed using a decoupled architecture, separating the FrontEnd, BackEnd, and Database into independent components.
