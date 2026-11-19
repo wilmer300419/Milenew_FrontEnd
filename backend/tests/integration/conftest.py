@@ -81,11 +81,21 @@ def app(database):
         "DATABASE_NAME": TEST_DB,
         "DATABASE_USER": TEST_ROLE,
         "DATABASE_PASSWORD": TEST_ROLE_PASSWORD,
+        "DB_POOL_ENABLED": False,
+        "RATELIMIT_ENABLED": False,
+        "AUTH_TOKEN_IN_BODY": True,
     })
 
 
 @pytest.fixture
 def client(app):
+    # Sin cookies: cada petición se autentica explícitamente con Bearer (las cookies se prueban aparte)
+    return app.test_client(use_cookies=False)
+
+
+@pytest.fixture
+def browser(app):
+    """Cliente que se comporta como un navegador (guarda la cookie de sesión)."""
     return app.test_client()
 
 
@@ -93,14 +103,15 @@ def client(app):
 def outbox(monkeypatch):
     """Captura los correos (códigos 2FA / recuperación) en vez de enviarlos."""
     sent = []
-    monkeypatch.setattr(auth_service, "send_mail", lambda to, subject, body: sent.append(
+    monkeypatch.setattr(auth_service, "send_mail", lambda to, subject, body, html=None: sent.append(
         {"to": to, "subject": subject, "body": body, "code": re.search(r"\b(\d{6})\b", body).group(1)}
     ))
     return sent
 
 
 def register(client, email="ana@example.com", password="secreta123", name="Ana"):
-    res = client.post("/api/auth/register", json={"name": name, "email": email, "password": password})
+    res = client.post("/api/auth/register",
+                      json={"name": name, "email": email, "password": password, "acceptTerms": True})
     assert res.status_code == 201, res.get_json()
     return res.get_json()["data"]
 

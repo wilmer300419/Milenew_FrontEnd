@@ -1,15 +1,19 @@
 import { useEffect, useState } from 'react'
-import { Bell, Lock, Mail, Moon, Navigation, ShieldCheck, Sun, UserRound } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Bell, FileText, Lock, LogOut, Mail, Moon, Navigation, ShieldCheck, Sun, Trash2, UserRound } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../context/ToastContext.jsx'
 import { usePreferences } from '../context/PreferencesContext.jsx'
-import { changePassword, updateProfile } from '../services/userService'
+import { changePassword, deleteAccount, updateProfile } from '../services/userService'
+import { logoutEverywhere } from '../services/authService'
 import Glass from '../components/ui/Glass.jsx'
 import Button from '../components/ui/Button.jsx'
 import Field from '../components/ui/Field.jsx'
 import Switch from '../components/ui/Switch.jsx'
 import Segmented from '../components/ui/Segmented.jsx'
 import Reveal, { revealItem } from '../components/ui/Reveal.jsx'
+import Modal from '../components/ui/Modal.jsx'
+import ConfirmDialog from '../components/ui/ConfirmDialog.jsx'
 
 const THEMES = [
   { value: 'dark', label: 'Oscuro', icon: <Moon size={14} /> },
@@ -33,6 +37,12 @@ function PreferenceRow({ icon: Icon, title, text, checked, onChange }) {
 
 function Profile() {
   const { user, setUser, isPassenger, roleLabel } = useAuth()
+  const navigate = useNavigate()
+  const [confirmAll, setConfirmAll] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deletePw, setDeletePw] = useState('')
+  const [deleteError, setDeleteError] = useState(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
   const { prefs, update } = usePreferences()
   const toast = useToast()
   const [name, setName] = useState(user?.name ?? '')
@@ -83,6 +93,34 @@ function Profile() {
       toast.error(err.message)
     } finally {
       setSavingPw(false)
+    }
+  }
+
+  const closeEverywhere = async () => {
+    try {
+      await logoutEverywhere()
+    } catch (err) {
+      toast.error(err.message)
+      throw err
+    }
+    setUser(null)
+    toast.success('Cerraste sesión en todos tus dispositivos')
+    navigate('/login')
+  }
+
+  const removeAccount = async (e) => {
+    e.preventDefault()
+    setDeleteBusy(true)
+    setDeleteError(null)
+    try {
+      await deleteAccount(deletePw)
+      setUser(null)
+      toast.success('Tu cuenta y tus datos fueron eliminados')
+      navigate('/')
+    } catch (err) {
+      setDeleteError(err.message)
+    } finally {
+      setDeleteBusy(false)
     }
   }
 
@@ -172,7 +210,85 @@ function Profile() {
             </Button>
           </div>
         </Glass>
+
+        <Glass variants={revealItem} className="danger-zone">
+          <div className="card-head">
+            <h3 className="title-md">Seguridad y privacidad</h3>
+          </div>
+          <div className="pref-row">
+            <span className="list-ico" aria-hidden="true">
+              <LogOut size={16} />
+            </span>
+            <span className="list-text">
+              <b>Cerrar sesión en todos los dispositivos</b>
+              <small>Útil si usaste un computador público o perdiste tu celular.</small>
+            </span>
+            <Button variant="glass" size="sm" onClick={() => setConfirmAll(true)}>
+              Cerrar todas
+            </Button>
+          </div>
+          <div className="pref-row">
+            <span className="list-ico" aria-hidden="true">
+              <FileText size={16} />
+            </span>
+            <span className="list-text">
+              <b>Tus datos personales</b>
+              <small>Qué guardamos y cuáles son tus derechos (Ley 1581).</small>
+            </span>
+            <Link to="/privacidad" className="link" style={{ fontSize: 13 }}>
+              Ver política
+            </Link>
+          </div>
+          <div className="pref-row">
+            <span className="list-ico" aria-hidden="true">
+              <Trash2 size={16} />
+            </span>
+            <span className="list-text">
+              <b>Eliminar mi cuenta</b>
+              <small>Borra tu cuenta, tu tarjeta, tus viajes y favoritas. No se puede deshacer.</small>
+            </span>
+            <Button variant="glass" size="sm" onClick={() => setDeleting(true)}>
+              Eliminar
+            </Button>
+          </div>
+        </Glass>
       </div>
+
+      <ConfirmDialog
+        open={confirmAll}
+        onClose={() => setConfirmAll(false)}
+        title="Cerrar todas las sesiones"
+        subtitle="También se cerrará en este dispositivo."
+        rows={[{ label: 'Cuenta', value: user?.email ?? '' }]}
+        confirmLabel="Cerrar todas"
+        onConfirm={closeEverywhere}
+      />
+
+      <Modal open={deleting} onClose={() => !deleteBusy && setDeleting(false)} title="Eliminar mi cuenta" subtitle="Esta acción es permanente.">
+        <form className="form" onSubmit={removeAccount}>
+          <p className="muted" style={{ margin: 0, fontSize: 13.5 }}>
+            Se borrarán tu cuenta, tu saldo TuLlave, tus viajes, favoritas y avisos. Los reportes de incidencias que
+            hiciste quedarán anónimos.
+          </p>
+          <Field
+            label="Escribe tu contraseña para confirmar"
+            type="password"
+            icon={Lock}
+            autoComplete="current-password"
+            value={deletePw}
+            onChange={(e) => setDeletePw(e.target.value)}
+            error={deleteError}
+          />
+          <div className="dialog-actions">
+            <Button variant="glass" onClick={() => setDeleting(false)} disabled={deleteBusy}>
+              Cancelar
+            </Button>
+            <Button type="submit" variant="accent" loading={deleteBusy} disabled={!deletePw}>
+              Eliminar definitivamente
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </Reveal>
   )
 }

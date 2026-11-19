@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import * as authService from '../services/authService'
 import { getProfile } from '../services/userService'
-import { clearToken, getToken, saveToken } from '../services/tokenStorage'
 
 const AuthContext = createContext(null)
 
@@ -10,40 +9,36 @@ const HOMES = { user: '/app', driver: '/operador', admin: '/central' }
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
-  // true mientras se valida un token guardado (p. ej. al recargar la página)
-  const [loading, setLoading] = useState(() => Boolean(getToken()))
+  // Al abrir la app preguntamos al BackEnd si la cookie de sesión sigue vigente
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!getToken()) return
+    let active = true
     getProfile()
-      .then((res) => setUser(res?.data ?? null))
-      .catch(() => {
-        clearToken()
-        setUser(null)
-      })
-      .finally(() => setLoading(false))
+      .then((res) => active && setUser(res?.data ?? null))
+      .catch(() => active && setUser(null))
+      .finally(() => active && setLoading(false))
+    return () => {
+      active = false
+    }
   }, [])
 
-  // api.js emite este evento cuando el BackEnd responde 401 (token vencido)
+  // api.js emite este evento cuando el BackEnd responde 401 (sesión vencida o cerrada)
   useEffect(() => {
     const onExpired = () => setUser(null)
     window.addEventListener('auth:logout', onExpired)
     return () => window.removeEventListener('auth:logout', onExpired)
   }, [])
 
-  // rememberMe: localStorage (persiste) o sessionStorage (se borra al cerrar)
-  const loginUser = useCallback((userData, token, rememberMe) => {
-    if (token) saveToken(token, rememberMe)
-    setUser(userData ?? null)
-  }, [])
+  // La cookie ya la puso el BackEnd; aquí solo guardamos quién es
+  const loginUser = useCallback((userData) => setUser(userData ?? null), [])
 
   const logout = useCallback(async () => {
     try {
       await authService.logout()
     } catch {
-      // si el token ya no servía da igual: cerramos la sesión local
+      // aunque falle, la interfaz queda sin sesión
     } finally {
-      clearToken()
       setUser(null)
     }
   }, [])

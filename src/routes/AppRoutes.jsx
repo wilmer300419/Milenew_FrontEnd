@@ -8,6 +8,8 @@ import Login from '../pages/auth/Login.jsx'
 import Register from '../pages/auth/Register.jsx'
 import RecoverAccount from '../pages/auth/RecoverAccount.jsx'
 import NotFound from '../pages/NotFound.jsx'
+import Privacy from '../pages/legal/Privacy.jsx'
+import Terms from '../pages/legal/Terms.jsx'
 
 // Páginas con sesión: se cargan bajo demanda para que el login sea liviano
 const PassengerHome = lazy(() => import('../pages/passenger/PassengerHome.jsx'))
@@ -32,6 +34,8 @@ function AppRoutes() {
           <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
           <Route path="/registro" element={<GuestRoute><Register /></GuestRoute>} />
           <Route path="/recuperar-cuenta" element={<RecoverAccount />} />
+          <Route path="/privacidad" element={<Privacy />} />
+          <Route path="/terminos" element={<Terms />} />
 
           <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
             <Route path="/app" element={<ProtectedRoute roles={PASSENGER}><PassengerHome /></ProtectedRoute>} />

@@ -36,9 +36,10 @@ describe('Login', () => {
     await userEvent.click(screen.getByRole('button', { name: 'No soy un robot' }))
     await userEvent.click(submit)
 
-    expect(login).toHaveBeenCalledWith({ email: 'ana@milenew.co', password: 'secreta123', captchaToken: 'captcha-ok' })
+    expect(login).toHaveBeenCalledWith({ email: 'ana@milenew.co', password: 'secreta123', captchaToken: 'captcha-ok', rememberMe: false })
     expect(await screen.findByText('Panel del pasajero')).toBeInTheDocument()
-    expect(sessionStorage.getItem('milenew_token')).toBe('jwt')
+    // el token nunca queda en el navegador: lo maneja la cookie httpOnly del servidor
+    expect(JSON.stringify({ ...localStorage, ...sessionStorage })).not.toContain('jwt')
   })
 
   it('muestra el error del servidor', async () => {

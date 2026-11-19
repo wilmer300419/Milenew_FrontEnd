@@ -6,7 +6,7 @@ from ..utils.auth import create_token
 from ..utils.captcha import verify_captcha
 from ..utils.codes import code_matches, generate_code, hash_code
 from ..utils.errors import ApiError, ConflictError, NotFoundError, UnauthorizedError, ValidationError
-from ..utils.mailer import send_mail
+from ..utils.mailer import code_email_html, send_mail
 from ..utils.validation import EMAIL_RE, get_str, password_error
 
 INVALID_CREDENTIALS = "Correo o contraseña incorrectos"
@@ -18,8 +18,9 @@ def public_user(user):
     return {k: user[k] for k in ("id", "name", "email", "role") if k in user}
 
 
-def _session(user):
-    return {"user": public_user(user), "token": create_token(user)}
+def _session(user, remember=False):
+    """Usuario público + token (la ruta lo pone en la cookie httpOnly)."""
+    return {"user": public_user(user), "token": create_token(user, remember), "remember": remember}
 
 
 def _check_password(user, password):
@@ -49,6 +50,8 @@ def register(data):
         errors["email"] = "Correo electrónico inválido"
     if password_error(password):
         errors["password"] = password_error(password)
+    if data.get("acceptTerms") is not True:
+        errors["acceptTerms"] = "Debes aceptar la política de tratamiento de datos"
     if errors:
         raise ValidationError(errors)
 
@@ -58,8 +61,8 @@ def register(data):
     if user_repository.get_auth_by_email(email):
         raise ConflictError("Ya existe una cuenta con ese correo")
 
-    user = user_repository.create(name, email, generate_password_hash(password))
-    return _session(user)
+    user = user_repository.create(name, email, generate_password_hash(password), "user", True)
+    return _session(user, remember=True)
 
 
 # ---------------------------------------------------------------- login
@@ -86,7 +89,7 @@ def login(data):
         _send_code(user, "two_factor")
         return {"requiresTwoFactor": True}
 
-    return _session(user)
+    return _session(user, remember=data.get("rememberMe") is True)
 
 
 def verify_two_factor(data):
@@ -102,7 +105,7 @@ def verify_two_factor(data):
     code_id = _check_code(user["id"], "two_factor", code)
     if not auth_code_repository.consume(code_id):
         raise ApiError(INVALID_CODE, 400)
-    return _session(user)
+    return _session(user, remember=data.get("rememberMe") is True)
 
 
 # ---------------------------------------------------------------- recuperación
@@ -161,11 +164,12 @@ def _send_code(user, purpose):
     else:
         subject = "Recupera tu cuenta de Milenew"
         intro = "Usa este código para crear una contraseña nueva:"
+    minutes = cfg["AUTH_CODE_TTL_MINUTES"]
     body = (
         f"Hola {user['name']},\n\n{intro}\n\n    {code}\n\n"
-        f"Vence en {cfg['AUTH_CODE_TTL_MINUTES']} minutos. Si no fuiste tú, ignora este correo."
+        f"Vence en {minutes} minutos. Si no fuiste tú, ignora este correo."
     )
-    send_mail(user["email"], subject, body)
+    send_mail(user["email"], subject, body, html=code_email_html(user["name"], intro, code, minutes))
 
 
 def _check_code(user_id, purpose, code):
@@ -183,3 +187,24 @@ def _check_code(user_id, purpose, code):
         raise ApiError(INVALID_CODE, 400)
 
     return active["id"]
+
+
+# ---------------------------------------------------------------- sesiones y cuenta
+def logout(jti, expires_at):
+    if jti:
+        user_repository.revoke_session(jti, expires_at)
+
+
+def logout_everywhere(user_id):
+    user_repository.bump_token_version(user_id)
+
+
+def delete_account(user_id, data):
+    """Derecho de supresión (Ley 1581): exige la contraseña actual."""
+    password = get_str(data, "password")
+    user = user_repository.get_auth_by_id(user_id)
+    if not user:
+        raise NotFoundError("Usuario no encontrado")
+    if not password or not check_password_hash(user["password_hash"], password):
+        raise ApiError("La contraseña no es correcta", 400, {"password": "Incorrecta"})
+    user_repository.delete(user_id)

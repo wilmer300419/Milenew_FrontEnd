@@ -9,11 +9,8 @@
     <title>Milenew · TransMilenio</title>
   </head>
   <body>
+    <script src="/theme-init.js"></script>
     <div id="root"></div>
-    <script>
-      // Aplica el tema guardado antes de pintar (evita parpadeo claro/oscuro)
-      try { var t = localStorage.getItem('milenew_theme'); if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t } catch (e) {}
-    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

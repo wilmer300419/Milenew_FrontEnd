@@ -44,7 +44,7 @@ function Login() {
   const { theme } = useTheme()
 
   const finish = (data) => {
-    loginUser(data.user, data.token, rememberMe)
+    loginUser(data.user)
     toast.success(`Hola, ${data.user.name.split(' ')[0]}`)
     navigate(location.state?.from?.pathname || homeFor(data.user), { replace: true })
   }
@@ -65,7 +65,7 @@ function Login() {
     setError(null)
     try {
       // El token de reCAPTCHA viaja con las credenciales; el BackEnd lo valida con Google.
-      const res = await login({ email: email.trim(), password, captchaToken })
+      const res = await login({ email: email.trim(), password, captchaToken, rememberMe })
       if (res?.data?.requiresTwoFactor) {
         setStep('2fa')
         toast.info(res.message)
@@ -88,7 +88,7 @@ function Login() {
     setSubmitting(true)
     setError(null)
     try {
-      const res = await verifyLoginCode({ email: email.trim(), code: code.trim() })
+      const res = await verifyLoginCode({ email: email.trim(), code: code.trim(), rememberMe })
       finish(res.data)
     } catch (err) {
       setError(err.status ? err.message : NETWORK_ERROR)

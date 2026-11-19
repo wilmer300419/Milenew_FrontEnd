@@ -1,7 +1,9 @@
-from flask import Blueprint, g
+from datetime import datetime, timedelta, timezone
+
+from flask import Blueprint, current_app, g
 
 from ..services import auth_service, preferences_service, trip_service, user_service
-from ..utils.auth import login_required
+from ..utils.auth import clear_session_cookie, create_token, login_required, set_session_cookie
 from ..utils.responses import success
 from ..utils.validation import get_json_body
 
@@ -23,8 +25,19 @@ def update_me():
 @users_bp.put("/me/password")
 @login_required
 def change_password():
-    user_service.change_password(g.user_id, get_json_body())
-    return success(None, "Tu contraseña se actualizó correctamente")
+    user = user_service.change_password(g.user_id, get_json_body())
+    # Las demás sesiones quedan cerradas; esta continúa con un token nuevo
+    remember = g.token_exp - datetime.now(timezone.utc) > timedelta(minutes=current_app.config["JWT_EXPIRES_MINUTES"])
+    response, code = success(None, "Contraseña actualizada. Cerramos tus otras sesiones.")
+    return set_session_cookie(response, create_token(user, remember), remember), code
+
+
+@users_bp.delete("/me")
+@login_required
+def delete_me():
+    auth_service.delete_account(g.user_id, get_json_body())
+    response, code = success(None, "Tu cuenta y tus datos fueron eliminados")
+    return clear_session_cookie(response), code
 
 
 @users_bp.get("/me/favorites")

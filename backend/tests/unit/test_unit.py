@@ -111,6 +111,15 @@ def test_login_requires_captcha_before_db(unit_app, monkeypatch):
     assert "robot" in res.get_json()["message"]
 
 
+def test_login_rate_limited():
+    app = create_app({"TESTING": True, "SECRET_KEY": "x" * 32, "RECAPTCHA_SECRET_KEY": "",
+                      "DB_POOL_ENABLED": False, "RATELIMIT_ENABLED": True})
+    client = app.test_client()
+    codes = [client.post("/api/auth/login", json={}).status_code for _ in range(11)]
+    assert codes[:10] == [400] * 10 and codes[10] == 429
+    assert "Demasiados intentos" in client.post("/api/auth/login", json={}).get_json()["message"]
+
+
 def test_build_call_safe():
     assert db._build_call("fn_station_list", ("x",)) == "SELECT * FROM fn_station_list(%s)"
     with pytest.raises(ValueError):
@@ -134,7 +143,7 @@ def test_db_down_returns_503_json(unit_app):
     ("get", "/api/wallet"), ("post", "/api/wallet/recharge"), ("get", "/api/users/me"),
     ("put", "/api/users/me"), ("put", "/api/users/me/password"), ("get", "/api/transit/checklist"),
     ("get", "/api/transit/operations-chat"), ("get", "/api/transit/vehicles/vagon-02/telemetry"),
-    ("post", "/api/auth/logout"),
+    ("post", "/api/auth/logout-all"), ("delete", "/api/users/me"),
 ])
 def test_protected_routes_need_token(unit_app, method, url):
     res = getattr(unit_app.test_client(), method)(url, json={})
@@ -144,7 +153,9 @@ def test_protected_routes_need_token(unit_app, method, url):
 
 @pytest.mark.parametrize("url", ["/api/transit/checklist", "/api/transit/operations-chat",
                                  "/api/transit/vehicles/vagon-02/telemetry"])
-def test_driver_routes_forbidden_for_passenger(unit_app, url):
+def test_driver_routes_forbidden_for_passenger(unit_app, url, monkeypatch):
+    from app.utils import auth as auth_utils
+    monkeypatch.setattr(auth_utils, "call_function_one", lambda *a: {"fn_session_check": True})
     with unit_app.app_context():
         token = create_token({"id": 1, "role": "user"})
     res = unit_app.test_client().get(url, headers={"Authorization": f"Bearer {token}"})

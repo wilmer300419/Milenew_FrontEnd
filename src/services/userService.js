@@ -17,3 +17,6 @@ export const getPreferences = () => api.get('/users/me/preferences')
 
 /** patch: { theme?, notifyArrivals?, notifyNews? } */
 export const updatePreferences = (patch) => api.put('/users/me/preferences', patch)
+
+/** Derecho de supresión: borra la cuenta. Exige la contraseña actual. */
+export const deleteAccount = (password) => api.delete('/users/me', { data: { password } })

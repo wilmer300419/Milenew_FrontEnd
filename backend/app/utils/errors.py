@@ -1,6 +1,7 @@
 import logging
 
 import psycopg
+from psycopg_pool import PoolTimeout
 from psycopg import errors as pg_errors
 from werkzeug.exceptions import HTTPException
 
@@ -72,6 +73,15 @@ def register_error_handlers(app):
     @app.errorhandler(pg_errors.CheckViolation)
     def handle_check(exc):
         return error("Los datos no cumplen las restricciones", 400)
+
+    @app.errorhandler(429)
+    def handle_rate_limit(exc):
+        return error("Demasiados intentos. Espera un momento y vuelve a intentarlo.", 429)
+
+    @app.errorhandler(PoolTimeout)
+    def handle_pool_timeout(exc):
+        logger.exception("Sin conexiones disponibles a la base de datos")
+        return error("Servicio de base de datos no disponible", 503)
 
     @app.errorhandler(psycopg.OperationalError)
     def handle_db_down(exc):

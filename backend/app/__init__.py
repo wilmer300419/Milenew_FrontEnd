@@ -1,9 +1,11 @@
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_cors import CORS
 
 from .cli import register_cli
 from .config import Config
-from .db import close_db
+from .db import init_db
+from .extensions import limiter
 from .routes.admin import admin_bp
 from .routes.auth import auth_bp
 from .routes.health import health_bp
@@ -27,12 +29,17 @@ def create_app(config_overrides=None):
     app.json.sort_keys = False
     app.json.ensure_ascii = False
 
+    if app.config["TRUST_PROXY"]:
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
     CORS(
         app,
         resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}},
-        allow_headers=["Content-Type", "Authorization"],
+        allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        supports_credentials=True,
     )
+    limiter.init_app(app)
 
     app.register_blueprint(health_bp, url_prefix="/api")
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
@@ -45,6 +52,6 @@ def create_app(config_overrides=None):
 
     register_error_handlers(app)
     register_cli(app)
-    app.teardown_appcontext(close_db)
+    init_db(app)
 
     return app

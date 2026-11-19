@@ -36,7 +36,7 @@ vi.mock('../services/userService.js', () => ({
   getFavorites: vi.fn(() => Promise.resolve({ data: [] })),
   addFavorite: vi.fn(),
   removeFavorite: vi.fn(),
-  getProfile: vi.fn(),
+  getProfile: vi.fn(() => Promise.reject({ status: 401 })),
   getPreferences: vi.fn(),
   updatePreferences: vi.fn(),
 }))

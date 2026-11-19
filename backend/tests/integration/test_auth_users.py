@@ -23,11 +23,11 @@ def test_register_login_me(client):
 
 
 def test_register_duplicate_and_validation(client, passenger):
-    assert client.post("/api/auth/register", json={"name": "B", "email": "ana@example.com",
+    assert client.post("/api/auth/register", json={"name": "B", "email": "ana@example.com", "acceptTerms": True,
                                                    "password": "secreta123"}).status_code == 409
     res = client.post("/api/auth/register", json={"name": "", "email": "x", "password": "1"})
     assert res.status_code == 400
-    assert set(res.get_json()["errors"]) == {"name", "email", "password"}
+    assert set(res.get_json()["errors"]) == {"name", "email", "password", "acceptTerms"}
 
 
 def test_login_wrong_password_same_message_as_unknown_email(client, passenger):

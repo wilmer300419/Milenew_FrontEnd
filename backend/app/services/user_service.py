@@ -49,3 +49,5 @@ def change_password(user_id, data):
         raise ValidationError({"newPassword": "La contraseña nueva debe ser distinta a la actual"})
 
     user_repository.update_password(user_id, generate_password_hash(new))
+    # La contraseña nueva cerró todas las sesiones; devolvemos el usuario para abrir una nueva aquí
+    return user_repository.get_auth_by_id(user_id)

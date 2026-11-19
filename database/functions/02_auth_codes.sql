@@ -92,7 +92,9 @@ BEGIN
         RETURN FALSE;
     END IF;
 
-    UPDATE users SET password_hash = p_password_hash WHERE users.id = p_user_id;
+    -- recuperar la contraseña cierra todas las sesiones abiertas
+    UPDATE users SET password_hash = p_password_hash, token_version = users.token_version + 1
+    WHERE users.id = p_user_id;
     RETURN FOUND;
 END;
 $$;

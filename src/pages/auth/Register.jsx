@@ -24,6 +24,7 @@ function strength(pw) {
 
 function Register() {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' })
+  const [acceptTerms, setAcceptTerms] = useState(false)
   const [errors, setErrors] = useState({})
   const [error, setError] = useState(null)
   const [captchaToken, setCaptchaToken] = useState(null)
@@ -43,6 +44,7 @@ function Register() {
     if (!EMAIL_RE.test(form.email.trim())) errs.email = 'Correo electrónico inválido'
     if (form.password.length < 8) errs.password = 'Mínimo 8 caracteres'
     if (form.confirm !== form.password) errs.confirm = 'Las contraseñas no coinciden'
+    if (!acceptTerms) errs.acceptTerms = 'Debes aceptar la política de tratamiento de datos'
     return errs
   }
 
@@ -63,9 +65,10 @@ function Register() {
         name: form.name.trim(),
         email: form.email.trim(),
         password: form.password,
+        acceptTerms,
         captchaToken,
       })
-      loginUser(res.data.user, res.data.token, true)
+      loginUser(res.data.user)
       toast.success('¡Cuenta creada! Bienvenido a Milenew')
       navigate(homeFor(res.data.user), { replace: true })
     } catch (err) {
@@ -127,6 +130,21 @@ function Register() {
           onChange={set('confirm')}
           error={errors.confirm}
         />
+        <label className="check terms">
+          <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} />
+          <span>
+            Acepto la{' '}
+            <Link to="/privacidad" target="_blank" className="link">
+              política de tratamiento de datos
+            </Link>{' '}
+            y los{' '}
+            <Link to="/terminos" target="_blank" className="link">
+              términos de uso
+            </Link>
+            .
+          </span>
+        </label>
+        {errors.acceptTerms && <small className="field-error-inline">{errors.acceptTerms}</small>}
         <div>
           <Recaptcha key={theme} theme={theme} ref={recaptchaRef} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken(null)} />
         </div>
