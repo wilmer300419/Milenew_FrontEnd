@@ -16,7 +16,7 @@ AS $$
            (n.user_id IS NOT NULL) AS personal,
            (n.user_id IS NOT NULL AND n.read_at IS NULL) AS unread
     FROM notifications n
-    WHERE n.user_id IS NULL
+    WHERE (n.user_id IS NULL AND n.audience = 'all')
        OR (p_user_id IS NOT NULL AND n.user_id = p_user_id)
     ORDER BY n.created_at DESC, n.id DESC
     LIMIT GREATEST(LEAST(COALESCE(p_limit, 20), 100), 1);

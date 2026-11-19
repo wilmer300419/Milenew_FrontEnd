@@ -8,6 +8,7 @@ import pytest
 
 from app import create_app, db
 from app.services.notification_service import relative_time
+from app.services import transit_service
 from app.services.transit_service import eta_to_station, simulate_vehicle, stop_sequence
 from app.utils import captcha
 from app.utils.auth import create_token
@@ -173,3 +174,32 @@ def test_cors_preflight(unit_app):
         "Origin": "http://localhost:5173", "Access-Control-Request-Method": "GET",
         "Access-Control-Request-Headers": "Authorization"})
     assert res.headers.get("Access-Control-Allow-Origin") == "http://localhost:5173"
+
+
+def _line(n):
+    return [{"id": i, "name": f"E{i}", "is_express_stop": i % 2 == 0, "lat": 4.6 + i / 100, "lng": -74.06}
+            for i in range(n)]
+
+
+def test_headway_ahead_behind_and_status(unit_app):
+    stations = _line(10)
+    buses = [{"code": f"bus-{k}", "label": f"B{k}", "service": "Corriente", "cars_count": 3} for k in range(4)]
+    with unit_app.app_context():
+        for t in (0, 777, 5000):
+            h = transit_service.headway(buses[0], stations, buses, now=t)
+            # Ida y vuelta = 18 tramos de 20 s: los dos intervalos suman como mucho una vuelta
+            assert 0 <= h["ahead"]["seconds"] + h["behind"]["seconds"] <= 18 * 20 + 1
+            assert h["status"] in ("early", "on_time", "late")
+            assert h["target_seconds"] == round((h["ahead"]["seconds"] + h["behind"]["seconds"]) / 2)
+        assert transit_service.headway(buses[0], stations, buses[:1]) is None
+
+
+def test_shift_stats_scale_with_driving_time(unit_app):
+    stations, route = _line(10), {"minutes_per_stop": 2}
+    buses = [{"code": f"bus-{k}", "label": f"B{k}", "service": "Corriente", "cars_count": 3} for k in range(3)]
+    with unit_app.app_context():
+        hour = transit_service.shift_stats(buses[0], route, stations, buses, 1, 3600, 0, 3600)
+        two = transit_service.shift_stats(buses[0], route, stations, buses, 1, 7200, 0, 7200)
+    assert hour["stops"] == 30 and two["stops"] == 60
+    assert 0 < hour["km"] < two["km"] and hour["laps"] == round(30 / 18, 1)
+    assert 0 < hour["passengers"] < two["passengers"] and 0 <= hour["punctuality_pct"] <= 100

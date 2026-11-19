@@ -10,8 +10,8 @@ def list_stations(route_code):
     return call_function("fn_station_list", route_code)
 
 
-def list_incident_categories():
-    return [row["name"] for row in call_function("fn_incident_category_list")]
+def list_incident_categories(scope="passenger"):
+    return [row["name"] for row in call_function("fn_incident_category_list", scope)]
 
 
 def create_incident(category, description, user_id, route_code):

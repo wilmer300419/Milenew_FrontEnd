@@ -88,12 +88,17 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION fn_incident_category_list()
+-- Categorías que puede usar un público ('passenger' o 'driver'); las 'all' valen para ambos.
+DROP FUNCTION IF EXISTS fn_incident_category_list();
+
+CREATE OR REPLACE FUNCTION fn_incident_category_list(p_scope VARCHAR DEFAULT 'passenger')
 RETURNS TABLE (name VARCHAR)
 LANGUAGE sql
 STABLE
 AS $$
-    SELECT c.name FROM incident_categories c ORDER BY c.name;
+    SELECT c.name FROM incident_categories c
+    WHERE c.scope IN ('all', p_scope)
+    ORDER BY c.name;
 $$;
 
 -- Crear incidencia. Lanza foreign_key_violation (23503) si la categoría no existe.

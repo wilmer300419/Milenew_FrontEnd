@@ -35,8 +35,12 @@ def unassign_vehicle(vehicle_code):
     return bool(row and row["fn_vehicle_unassign"])
 
 
-def create_notice(title, description):
-    return call_function_one("fn_notice_create", title, description)
+def create_notice(title, description, audience):
+    return call_function_one("fn_notice_create", title, description, audience)
+
+
+def list_notices(limit=50):
+    return call_function("fn_notice_list", limit)
 
 
 def delete_notice(notice_id):

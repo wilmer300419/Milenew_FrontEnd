@@ -5,7 +5,15 @@ import { useToast } from '../../context/ToastContext.jsx'
 import { usePolling } from '../../hooks/usePolling.js'
 import { useNow } from '../../hooks/useNow.js'
 import { useStations } from '../../hooks/useTransit.js'
-import { getChatMessages, getChecklist, getMyVehicle, postChatMessage, postChecklistItem } from '../../services/transitService.js'
+import {
+  getChatMessages,
+  getChecklist,
+  getDriverReports,
+  getMyVehicle,
+  getShift,
+  postChatMessage,
+  postChecklistItem,
+} from '../../services/transitService.js'
 import { formatEta } from '../../utils/formatters.js'
 import Glass from '../../components/ui/Glass.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -14,6 +22,11 @@ import Skeleton from '../../components/ui/Skeleton.jsx'
 import Reveal, { revealItem } from '../../components/ui/Reveal.jsx'
 import RouteLine from '../../components/transit-ui/RouteLine.jsx'
 import Occupancy from '../../components/transit-ui/Occupancy.jsx'
+import ShiftCard from '../../components/operator/ShiftCard.jsx'
+import HeadwayCard from '../../components/operator/HeadwayCard.jsx'
+import SosButton from '../../components/operator/SosButton.jsx'
+import ReportsCard from '../../components/operator/ReportsCard.jsx'
+import NoticesCard from '../../components/operator/NoticesCard.jsx'
 
 const CIRC = 2 * Math.PI * 44
 const QUICK = ['Todo en orden', 'Retraso leve', 'Solicito apoyo']
@@ -46,7 +59,7 @@ function Gauge({ value, max, unit, color }) {
   )
 }
 
-function Checklist() {
+function Checklist({ onChange }) {
   const toast = useToast()
   const { data, loading, refresh } = usePolling(getChecklist, 0)
   const items = data ?? []
@@ -56,14 +69,15 @@ function Checklist() {
     try {
       await postChecklistItem(item.id, !item.done)
       await refresh()
-      if (!item.done && done + 1 === items.length) toast.success('Checklist completo. ¡Puedes iniciar ruta!')
+      onChange()
+      if (!item.done && done + 1 === items.length) toast.success('Checklist completo. ¡Ya puedes iniciar el turno!')
     } catch (err) {
       toast.error(err.message)
     }
   }
 
   return (
-    <Glass variants={revealItem}>
+    <Glass variants={revealItem} id="checklist">
       <div className="card-head">
         <h3 className="title-md">
           <ClipboardCheck size={18} /> Checklist pre-operacional
@@ -101,11 +115,12 @@ function OperationsChat() {
   const { data, refresh } = usePolling(getChatMessages, 8000)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
-  const endRef = useRef(null)
+  const boxRef = useRef(null)
   const messages = data ?? []
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    // Solo se desplaza la caja del chat (scrollIntoView movía toda la página)
+    boxRef.current?.scrollTo({ top: boxRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages.length])
 
   const send = async (message) => {
@@ -129,7 +144,7 @@ function OperationsChat() {
           <MessageSquare size={18} /> Central de operaciones
         </h3>
       </div>
-      <div className="chat">
+      <div className="chat" ref={boxRef}>
         {!messages.length && <p className="empty">Sin mensajes todavía.</p>}
         <AnimatePresence initial={false}>
           {messages.map((m) => (
@@ -144,7 +159,6 @@ function OperationsChat() {
             </motion.div>
           ))}
         </AnimatePresence>
-        <span ref={endRef} />
       </div>
       <div className="chips">
         {QUICK.map((q) => (
@@ -172,7 +186,10 @@ function OperationsChat() {
 function Operator() {
   const toast = useToast()
   const { stations } = useStations()
-  const { data: bus, error, fetchedAt } = usePolling(getMyVehicle, 2000)
+  const { data: bus, error, loading: busLoading, fetchedAt } = usePolling(getMyVehicle, 2000)
+  const shift = usePolling(getShift, 15000)
+  const reports = usePolling(getDriverReports, 10000)
+  const activeSos = reports.data?.reports.find((r) => r.priority === 'sos' && r.status !== 'closed')
   const now = useNow(1000)
   const [doorsOpen, setDoorsOpen] = useState(false)
   const elapsed = (now - fetchedAt) / 1000
@@ -214,11 +231,7 @@ function Operator() {
           </h1>
           <p>{bus ? `${bus.service} · ${bus.routeName}` : ' '}</p>
         </div>
-        {bus && (
-          <span className="chip red">
-            <span className="live-dot" /> En operación
-          </span>
-        )}
+        <SosButton active={activeSos} onSent={reports.refresh} />
       </Reveal.Item>
 
       <Glass variants={revealItem} dark style={{ marginBottom: 20 }}>
@@ -249,6 +262,11 @@ function Operator() {
           </div>
         )}
       </Glass>
+
+      <div className="grid grid-2" style={{ marginBottom: 20 }}>
+        <ShiftCard shift={shift} onChange={shift.refresh} />
+        <HeadwayCard headway={bus?.headway} loading={busLoading && !bus} />
+      </div>
 
       {bus && (
         <Glass variants={revealItem} style={{ marginBottom: 20 }}>
@@ -287,6 +305,7 @@ function Operator() {
               <Switch checked={doorsOpen} onChange={toggleDoors} label="Abrir o cerrar puertas" />
             </div>
           </Glass>
+          <ReportsCard reports={reports} onChange={reports.refresh} />
         </div>
 
         <div className="stack">
@@ -296,10 +315,13 @@ function Operator() {
             </div>
             <Occupancy cars={bus?.cars} />
           </Glass>
-          <Checklist />
+          <Checklist onChange={shift.refresh} />
         </div>
 
-        <OperationsChat />
+        <div className="stack">
+          <NoticesCard />
+          <OperationsChat />
+        </div>
       </div>
     </Reveal>
   )

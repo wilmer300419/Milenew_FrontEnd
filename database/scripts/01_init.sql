@@ -16,6 +16,7 @@ BEGIN;
 \ir ../tables/07_operations.sql
 \ir ../tables/08_trips.sql
 \ir ../tables/09_preferences.sql
+\ir ../tables/10_driver_ops.sql
 \ir ../functions/00_triggers.sql
 \ir ../functions/01_users.sql
 \ir ../functions/02_auth_codes.sql
@@ -26,5 +27,6 @@ BEGIN;
 \ir ../functions/08_trips.sql
 \ir ../functions/09_preferences.sql
 \ir ../functions/10_central.sql
+\ir ../functions/11_driver_ops.sql
 \ir 03_seed.sql
 COMMIT;

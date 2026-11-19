@@ -7,9 +7,16 @@ import { assignDriver, createNotice, deleteNotice, getFleet, getNotices } from '
 import Glass from '../../components/ui/Glass.jsx'
 import Button from '../../components/ui/Button.jsx'
 import Field from '../../components/ui/Field.jsx'
+import Segmented from '../../components/ui/Segmented.jsx'
 import Skeleton from '../../components/ui/Skeleton.jsx'
 import ConfirmDialog from '../../components/ui/ConfirmDialog.jsx'
 import Reveal, { revealItem } from '../../components/ui/Reveal.jsx'
+
+const SHIFT = { on: 'En turno', break: 'En pausa', off: 'Fuera de turno' }
+const AUDIENCES = [
+  { value: 'all', label: 'Todos' },
+  { value: 'drivers', label: 'Solo operadores' },
+]
 
 function CentralFleet() {
   const toast = useToast()
@@ -17,6 +24,7 @@ function CentralFleet() {
   const notices = usePolling(getNotices, 0)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [audience, setAudience] = useState('all')
   const [publishing, setPublishing] = useState(false)
   const [removing, setRemoving] = useState(null)
   const vehicles = fleet.data?.vehicles ?? []
@@ -38,8 +46,8 @@ function CentralFleet() {
     e.preventDefault()
     setPublishing(true)
     try {
-      await createNotice(title.trim(), description.trim())
-      toast.success('Aviso publicado para todos los pasajeros')
+      await createNotice(title.trim(), description.trim(), audience)
+      toast.success(audience === 'drivers' ? 'Aviso enviado a los operadores' : 'Aviso publicado para todos')
       setTitle('')
       setDescription('')
       notices.refresh()
@@ -92,6 +100,7 @@ function CentralFleet() {
                     <b>{v.label}</b>
                     <small>
                       {v.service} · {v.routeName}
+                      {v.driverId ? ` · ${SHIFT[v.shiftStatus]}` : ''}
                     </small>
                   </span>
                   <div className="field compact-select">
@@ -119,13 +128,14 @@ function CentralFleet() {
               </h3>
             </div>
             <div className="form">
+              <Segmented options={AUDIENCES} value={audience} onChange={setAudience} />
               <Field label="Título" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={150} />
               <div className="field">
                 <textarea id="notice-desc" className="textarea" placeholder=" " rows={3} maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} />
-                <label htmlFor="notice-desc">Detalle para los pasajeros</label>
+                <label htmlFor="notice-desc">{audience === 'drivers' ? 'Detalle para los operadores' : 'Detalle para pasajeros y operadores'}</label>
               </div>
               <Button type="submit" loading={publishing} disabled={title.trim().length < 3}>
-                Publicar a todos
+                {audience === 'drivers' ? 'Enviar a operadores' : 'Publicar a todos'}
               </Button>
             </div>
           </Glass>
@@ -142,7 +152,7 @@ function CentralFleet() {
                     <span className="list-text">
                       <b>{n.title}</b>
                       <small>
-                        {n.relativeTime}
+                        {n.audience === 'drivers' ? 'Operadores' : 'Todos'} · {n.relativeTime} · {n.acks === 1 ? '1 operador enterado' : `${n.acks} operadores enterados`}
                         {n.description ? ` · ${n.description}` : ''}
                       </small>
                     </span>
@@ -161,7 +171,7 @@ function CentralFleet() {
         open={Boolean(removing)}
         onClose={() => setRemoving(null)}
         title="Eliminar aviso"
-        subtitle="Dejará de verse para todos los pasajeros."
+        subtitle="Dejará de verse en las apps de pasajeros y operadores."
         rows={removing ? [{ label: 'Aviso', value: removing.title }] : []}
         confirmLabel="Eliminar"
         onConfirm={remove}

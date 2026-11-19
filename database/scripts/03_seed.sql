@@ -53,10 +53,11 @@ ON CONFLICT (code) DO NOTHING;
 -- Completa etiqueta/servicio en BD creadas con la versión anterior
 UPDATE vehicles SET label = 'B75 · 7042', service = 'Expreso' WHERE code = 'vagon-02' AND label IS NULL;
 
--- Categorías de incidencia (deben coincidir con las del FrontEnd)
-INSERT INTO incident_categories (name) VALUES
-    ('Falla mecánica'), ('Seguridad'), ('Vía / tráfico'), ('Aglomeración')
-ON CONFLICT (name) DO NOTHING;
+-- Categorías de incidencia y quién puede usarlas (all, passenger o driver)
+INSERT INTO incident_categories (name, scope) VALUES
+    ('Falla mecánica', 'all'), ('Seguridad', 'all'), ('Vía / tráfico', 'all'), ('Aglomeración', 'passenger'),
+    ('Accidente de tránsito', 'driver'), ('Emergencia médica', 'driver'), ('Emergencia (SOS)', 'driver')
+ON CONFLICT (name) DO UPDATE SET scope = EXCLUDED.scope;
 
 -- Checklist pre-operacional
 INSERT INTO checklist_items (label, sort_order)

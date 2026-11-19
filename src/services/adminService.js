@@ -19,6 +19,7 @@ export const assignDriver = (vehicleCode, driverId) => api.put(`/admin/fleet/${v
 
 export const getNotices = () => api.get('/admin/notices')
 
-export const createNotice = (title, description) => api.post('/admin/notices', { title, description })
+export const createNotice = (title, description, audience = 'all') =>
+  api.post('/admin/notices', { title, description, audience })
 
 export const deleteNotice = (id) => api.delete(`/admin/notices/${id}`)

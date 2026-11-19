@@ -17,11 +17,11 @@ function Thread({ driver, onSent }) {
   const thread = usePolling(() => getConversation(driver.driverId), 4000, [driver.driverId])
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
-  const endRef = useRef(null)
+  const boxRef = useRef(null)
   const messages = thread.data ?? []
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: 'nearest' })
+    boxRef.current?.scrollTo({ top: boxRef.current.scrollHeight })
   }, [messages.length])
 
   const send = async (message) => {
@@ -41,7 +41,7 @@ function Thread({ driver, onSent }) {
 
   return (
     <>
-      <div className="chat chat-tall" aria-live="polite">
+      <div className="chat chat-tall" aria-live="polite" ref={boxRef}>
         {thread.loading && !thread.data && <Skeleton h={120} />}
         {!thread.loading && !messages.length && <p className="empty">Sin mensajes con {driver.driverName} todavía.</p>}
         <AnimatePresence initial={false}>
@@ -57,7 +57,6 @@ function Thread({ driver, onSent }) {
             </motion.div>
           ))}
         </AnimatePresence>
-        <span ref={endRef} />
       </div>
       <div className="chips">
         {QUICK.map((q) => (

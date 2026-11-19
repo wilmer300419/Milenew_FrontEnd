@@ -34,3 +34,20 @@ export const postChatMessage = (message) => api.post('/transit/operations-chat',
 export const markNotificationRead = (id) => api.post(`/notifications/${id}/read`)
 
 export const markAllNotificationsRead = () => api.post('/notifications/read-all')
+
+// ---- Turno, novedades/SOS y avisos del operador
+export const getShift = () => api.get('/transit/shift')
+
+export const startShift = () => api.post('/transit/shift/start')
+
+export const setShiftBreak = (active) => api.post('/transit/shift/break', { active })
+
+export const endShift = () => api.post('/transit/shift/end')
+
+export const getDriverReports = () => api.get('/transit/driver-reports')
+
+export const postDriverReport = (payload) => api.post('/transit/driver-reports', payload)
+
+export const getDriverNotices = () => api.get('/transit/driver-notices')
+
+export const ackDriverNotice = (id) => api.post(`/transit/driver-notices/${id}/ack`)

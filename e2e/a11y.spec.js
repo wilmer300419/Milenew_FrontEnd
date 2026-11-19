@@ -31,3 +31,8 @@ test('central sin problemas graves de accesibilidad', async ({ page }) => {
   await login(page, DEMO.central)
   for (const path of ['/central', '/central/mensajes', '/central/flota']) await audit(page, path)
 })
+
+test('panel del operador sin problemas graves de accesibilidad', async ({ page }) => {
+  await login(page, DEMO.driver)
+  await audit(page, '/operador')
+})

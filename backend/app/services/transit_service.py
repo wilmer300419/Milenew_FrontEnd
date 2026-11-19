@@ -168,11 +168,117 @@ def _vehicle_payload(vehicle):
     return {**pub, "routeId": route["code"], "routeName": route["name"], "updatedAt": _now_iso()}
 
 
-def my_vehicle(driver_id):
+def driver_vehicle(driver_id):
     vehicle = transit_repository.get_vehicle_by_driver(driver_id)
     if not vehicle:
         raise NotFoundError("No tienes un bus asignado. Pide a la central que te asigne uno.")
-    return _vehicle_payload(vehicle)
+    return vehicle
+
+
+def my_vehicle(driver_id):
+    vehicle = driver_vehicle(driver_id)
+    payload = _vehicle_payload(vehicle)
+    stations = transit_repository.list_stations(vehicle["route_code"])
+    payload["headway"] = headway(vehicle, stations, transit_repository.list_vehicles(vehicle["route_code"]))
+    return payload
+
+
+def vehicle_location(vehicle):
+    """Texto con la ubicación simulada del bus (para los reportes del operador)."""
+    stations = transit_repository.list_stations(vehicle["route_code"])
+    sim = _simulate_for(vehicle, stations)
+    current, nxt = stations[sim["currentIndex"]]["name"], stations[sim["nextIndex"]]["name"]
+    return f"En {current}" if sim["atStation"] else f"Entre {current} y {nxt}"
+
+
+# ---------------------------------------------------------------- regulación (intervalos)
+HEADWAY_TOLERANCE = 0.25   # ±25 % del intervalo ideal se considera "a tiempo"
+
+
+def _loop_position(sim, n):
+    """Posición sobre el recorrido de ida y vuelta (0 .. 2(n-1)), en unidades de estación."""
+    return sim["position"] if sim["direction"] == "sur" else 2 * (n - 1) - sim["position"]
+
+
+def headway(vehicle, stations, vehicles, now=None):
+    """Intervalo con el bus de adelante y el de atrás (del mismo servicio), y si va adelantado o atrasado.
+
+    En un BRT se regula por intervalo: lo ideal es ir a la misma distancia (en tiempo) del bus
+    de adelante y del de atrás. None si no hay otros buses en la troncal.
+    """
+    n = len(stations)
+    others = [v for v in vehicles if v["code"] != vehicle["code"]]
+    # Se regula contra los buses del mismo servicio (B75 con B75); si no hay, contra todos
+    others = [v for v in others if v["service"] == vehicle["service"]] or others
+    if n < 2 or not others:
+        return None
+    now = time.time() if now is None else now
+    loop = 2 * (n - 1)
+    me = _simulate_for(vehicle, stations, now)
+    origin = _loop_position(me, n)
+    # El bus recorre toda la vuelta (loop unidades) en 2(m-1) tramos de `sps` segundos
+    seconds_per_unit = 2 * (len(me["_seq"]) - 1) * _sps() / loop
+
+    ahead = behind = None
+    for v in others:
+        d = (_loop_position(_simulate_for(v, stations, now), n) - origin) % loop
+        if ahead is None or d < ahead[0]:
+            ahead = (d, v)
+        if behind is None or loop - d < behind[0]:
+            behind = (loop - d, v)
+
+    ahead_s, behind_s = round(ahead[0] * seconds_per_unit), round(behind[0] * seconds_per_unit)
+    target = (ahead_s + behind_s) / 2
+    deviation = (behind_s - ahead_s) / 2      # > 0: va muy pegado al de adelante (adelantado)
+    status = "on_time"
+    if deviation > HEADWAY_TOLERANCE * target:
+        status = "early"
+    elif deviation < -HEADWAY_TOLERANCE * target:
+        status = "late"
+
+    def info(entry, seconds):
+        return {"label": entry[1]["label"], "service": entry[1]["service"], "seconds": seconds}
+
+    return {"ahead": info(ahead, ahead_s), "behind": info(behind, behind_s), "status": status,
+            "deviation_seconds": round(deviation), "target_seconds": round(target)}
+
+
+def punctuality_pct(vehicle, stations, vehicles, start, end, samples=60):
+    """% del tiempo entre start y end en que el bus estuvo "a tiempo" (muestreado)."""
+    if end - start < 1 or len(vehicles) < 2:
+        return None
+    step = (end - start) / samples
+    hits = [headway(vehicle, stations, vehicles, start + step * (k + 0.5)) for k in range(samples)]
+    return round(100 * sum(h["status"] == "on_time" for h in hits) / samples)
+
+
+# ---------------------------------------------------------------- estadísticas de turno
+def _km(a, b):
+    """Distancia en km entre dos estaciones (haversine); 0.8 km si no hay coordenadas."""
+    if None in (a["lat"], a["lng"], b["lat"], b["lng"]):
+        return 0.8
+    lat1, lng1, lat2, lng2 = map(math.radians, map(float, (a["lat"], a["lng"], b["lat"], b["lng"])))
+    h = math.sin((lat2 - lat1) / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin((lng2 - lng1) / 2) ** 2
+    return 6371 * 2 * math.asin(math.sqrt(h))
+
+
+def shift_stats(vehicle, route, stations, vehicles, shift_key, driving_seconds, start, end):
+    """Resumen ESTIMADO de un turno a escala real (el mapa usa una simulación acelerada).
+
+    Paradas = tiempo conducido / minutos por parada de la troncal; km y pasajeros salen de esas
+    paradas; la puntualidad, del intervalo con los otros buses durante el turno.
+    """
+    seq = stop_sequence(stations, vehicle["service"])
+    route_km = sum(_km(stations[i], stations[i + 1]) for i in range(len(stations) - 1))
+    stops = int(driving_seconds // (float(route["minutes_per_stop"]) * 60)) if len(seq) > 1 else 0
+    km_per_stop = route_km / max(1, len(seq) - 1)
+    return {
+        "stops": stops,
+        "km": round(stops * km_per_stop, 1),
+        "laps": round(stops / max(1, 2 * (len(seq) - 1)), 1),
+        "passengers": sum(4 + _hash_int(vehicle["code"], shift_key, k) % 27 for k in range(stops)),
+        "punctuality_pct": punctuality_pct(vehicle, stations, vehicles, start, end),
+    }
 
 
 def station_arrivals(station_id, route_code=DEFAULT_ROUTE):

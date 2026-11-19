@@ -82,13 +82,21 @@ Objeto `User`: `{ id, name, email, role }` con `role` ∈ `user` | `driver` | `a
 | GET | `/transit/routes/:routeId/vehicles` | `{ routeId, routeName, secondsPerStop, serverTime, vehicles: Vehicle[] }` (todos los buses en vivo) |
 | GET | `/transit/stations/:stationId/arrivals` | `{ station, arrivals: [{ vehicleId, label, service, direction, etaSeconds, currentStation }], serverTime }` |
 | GET | `/transit/incident-categories` | `string[]` |
-| GET | `/transit/my-vehicle` 🚍 | `Vehicle` del bus asignado al operador (404 si no tiene) |
+| GET | `/transit/my-vehicle` 🚍 | `Vehicle` del bus asignado + `headway` (404 si no tiene bus) |
 | GET | `/transit/trip-plan?from=<stationId>&to=<stationId>` | igual a `computeTripPlan` (`sameStation, stops, direction, fare, bestService, bestMinutes, savedMinutes, expressAvailable, legs`) |
 | POST | `/transit/incidents` 👤? | body `{ category, description? }` → `{ id, category, description, status, createdAt }` |
 | GET | `/transit/checklist` 🚍 | `[{ id, label, done }]` del día |
 | POST | `/transit/checklist` 🚍 | body `{ itemId, done }` → `{ id, label, done }` |
 | GET | `/transit/operations-chat` 🚍 | `[{ id, from: "driver" \| "central", text, createdAt }]` |
-| POST | `/transit/operations-chat` 🚍 | body `{ message }` → mensaje creado (la central responde automáticamente) |
+| POST | `/transit/operations-chat` 🚍 | body `{ message }` → mensaje creado |
+| GET | `/transit/shift` 🚍 | `{ active: Shift \| null, last: Shift \| null, requirements: { hasVehicle, checklistDone, checklistTotal } }` |
+| POST | `/transit/shift/start` 🚍 | `Shift` (201). 400 si el checklist del día no está completo, 409 si ya hay turno |
+| POST | `/transit/shift/break` 🚍 | body `{ active }` → `Shift` (inicia o termina la pausa) |
+| POST | `/transit/shift/end` 🚍 | `Shift` cerrado con el resumen guardado en `stats` |
+| GET | `/transit/driver-reports` 🚍 | `{ reports: [{ id, category, description, status, priority, location, resolutionNote, createdAt }], categories: string[] }` |
+| POST | `/transit/driver-reports` 🚍 | body `{ sos: true }` o `{ category, description? }` → reporte (201). Un SOS abierto no se duplica (200) |
+| GET | `/transit/driver-notices` 🚍 | avisos generales de los últimos 3 días: `[{ id, title, description, audience, createdAt, relativeTime, acked }]` |
+| POST | `/transit/driver-notices/:id/ack` 🚍 | `null` (confirma que el operador leyó el aviso) |
 
 - `Station`: `{ id, code, name, sortOrder, isExpressStop, accesses: string[], lat, lng, routeCode }`
   (coordenadas aproximadas, para el mapa).
@@ -99,9 +107,15 @@ Objeto `User`: `{ id, name, email, role }` con `role` ∈ `user` | `driver` | `a
   `service` es `"Expreso"` o `"Corriente"`. `position` es continuo (índice de estación con decimales) para animar el bus entre estaciones.
   Los **expresos** solo paran en estaciones con `isExpressStop`.
 - `direction`: `"sur"` o `"norte"`
+- `headway`: `{ ahead: { label, service, seconds }, behind: {...}, status: "early" | "on_time" | "late", deviationSeconds, targetSeconds }`
+  — intervalo con el bus de adelante y el de atrás del mismo servicio (`null` si no hay otros buses).
+- `Shift`: `{ id, vehicleCode, routeCode, startedAt, endedAt, onBreak, breakStartedAt, breakSeconds, drivingSeconds, continuousSeconds, breakRecommended, stats }`
+  con `stats: { stops, km, laps, passengers, punctualityPct }` — **estimaciones** a escala real a partir del
+  tiempo conducido (la simulación del mapa va acelerada). `breakRecommended` tras 4 h de conducción continua.
 - Rutas y vehículos de la semilla: `caracas-b75` y `vagon-02`.
-- Categorías de incidencia: `Falla mecánica`, `Seguridad`, `Vía / tráfico`, `Aglomeración`
-  (tabla `incident_categories`).
+- Categorías de incidencia (tabla `incident_categories`, columna `scope`): pasajeros → `Falla mecánica`,
+  `Seguridad`, `Vía / tráfico`, `Aglomeración`; operadores → `Falla mecánica`, `Seguridad`, `Vía / tráfico`,
+  `Accidente de tránsito`, `Emergencia médica` (+ `Emergencia (SOS)` solo con `{ sos: true }`).
 - ⚠️ **Posición y telemetría son simuladas** (no hay GPS real): el bus recorre la troncal ida y
   vuelta y tarda `SIMULATION_SECONDS_PER_STOP` segundos por tramo. Al inicio de cada tramo está
   detenido (`speed: 0`), así que en ese momento sí se pueden abrir las puertas.
@@ -142,15 +156,15 @@ transacción y cierra el viaje anterior si seguía abierto. Si no alcanza el sal
 
 | Método | Ruta | Body | `data` |
 | --- | --- | --- | --- |
-| GET | `/admin/summary` | — | `{ openIncidents, inProgressIncidents, drivers, assignedVehicles, vehicles, unreadMessages, passengers }` |
-| GET | `/admin/incidents?status=` | — | incidencias (`open`, `in_progress`, `closed` o todas) con `reporterName`, `routeName`, `resolutionNote` |
+| GET | `/admin/summary` | — | `{ openIncidents, inProgressIncidents, drivers, assignedVehicles, vehicles, unreadMessages, passengers, sosOpen, activeShifts }` |
+| GET | `/admin/incidents?status=` | — | incidencias (`open`, `in_progress`, `closed` o todas) con `reporterName`, `routeName`, `resolutionNote`, `priority`, `vehicleLabel`, `location`, `fromDriver`. Los SOS sin cerrar van primero |
 | PATCH | `/admin/incidents/:id` | `{ status, note? }` | al cerrar, quien la reportó recibe un aviso personal |
 | GET | `/admin/conversations` | — | una por operador: `{ driverId, driverName, vehicleLabel, lastText, lastSender, lastAt, unread }` |
 | GET | `/admin/conversations/:driverId` | — | mensajes (los marca como leídos) |
 | POST | `/admin/conversations/:driverId` | `{ message }` | mensaje enviado por la central |
-| GET | `/admin/fleet` | — | `{ vehicles: [...], drivers: [...] }` |
+| GET | `/admin/fleet` | — | `{ vehicles: [... shiftStatus: "on" \| "break" \| "off"], drivers: [...] }` |
 | PUT | `/admin/fleet/:vehicleCode/driver` | `{ driverId \| null }` | flota actualizada (un operador = un bus) |
-| GET / POST | `/admin/notices` | `{ title, description }` | avisos generales para todos los pasajeros |
+| GET / POST | `/admin/notices` | `{ title, description, audience? }` | avisos generales; `audience`: `all` (todos) o `drivers` (solo operadores). El GET incluye `acks` (operadores que confirmaron) |
 | DELETE | `/admin/notices/:id` | — | `null` |
 
 ## Salud
@@ -171,7 +185,8 @@ transacción y cierra el viaje anterior si seguía abierto. Si no alcanza el sal
 | notificaciones | `fn_notification_list` |
 | checklist / chat | `fn_checklist_list`, `fn_checklist_set`, `fn_chat_list`, `fn_chat_create` |
 | buses / operador | `fn_vehicle_list_by_route`, `fn_vehicle_get_by_driver`, `fn_vehicle_assign_driver` |
-| central | `fn_central_summary`, `fn_incident_list`, `fn_incident_update`, `fn_chat_conversations`, `fn_chat_mark_read`, `fn_fleet_list`, `fn_driver_list`, `fn_vehicle_unassign`, `fn_notice_create`, `fn_notice_delete` |
+| central | `fn_central_summary`, `fn_incident_list`, `fn_incident_update`, `fn_chat_conversations`, `fn_chat_mark_read`, `fn_fleet_list`, `fn_driver_list`, `fn_vehicle_unassign`, `fn_notice_create`, `fn_notice_list`, `fn_notice_delete` |
+| turno / novedades / avisos del operador | `fn_shift_get_open`, `fn_shift_get_last`, `fn_shift_start`, `fn_shift_set_break`, `fn_shift_end`, `fn_driver_report_create`, `fn_driver_report_list`, `fn_driver_notice_list`, `fn_notice_ack` |
 | sesiones / cuenta | `fn_session_check`, `fn_session_revoke`, `fn_user_bump_token_version`, `fn_user_delete` |
 | troncales | `fn_route_list`, `fn_route_get`, `fn_station_list` |
 | preferencias / avisos leídos | `fn_preferences_get`, `fn_preferences_update`, `fn_notification_mark_read`, `fn_notification_mark_all_read`, `fn_notification_unread_count` |

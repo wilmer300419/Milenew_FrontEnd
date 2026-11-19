@@ -1,6 +1,6 @@
 from flask import Blueprint, g, request
 
-from ..services import operations_service, transit_service
+from ..services import operations_service, shift_service, transit_service
 from ..utils.auth import optional_login, role_required
 from ..utils.responses import success
 from ..utils.validation import get_json_body
@@ -80,3 +80,61 @@ def get_chat():
 @role_required(*DRIVER_ROLES)
 def post_chat():
     return success(operations_service.post_chat_message(g.user_id, get_json_body()), "Mensaje enviado", 201)
+
+
+# ---------------------------------------------------------------- turno del operador
+@transit_bp.get("/shift")
+@role_required(*DRIVER_ROLES)
+def get_shift():
+    return success(shift_service.get_shift(g.user_id), "Turno")
+
+
+@transit_bp.post("/shift/start")
+@role_required(*DRIVER_ROLES)
+def start_shift():
+    return success(shift_service.start(g.user_id), "Turno iniciado", 201)
+
+
+@transit_bp.post("/shift/break")
+@role_required(*DRIVER_ROLES)
+def shift_break():
+    shift = shift_service.set_break(g.user_id, get_json_body())
+    return success(shift, "Pausa iniciada" if shift["on_break"] else "Pausa terminada")
+
+
+@transit_bp.post("/shift/end")
+@role_required(*DRIVER_ROLES)
+def end_shift():
+    return success(shift_service.end(g.user_id), "Turno terminado")
+
+
+# ---------------------------------------------------------------- novedades y SOS
+@transit_bp.get("/driver-reports")
+@role_required(*DRIVER_ROLES)
+def driver_reports():
+    return success({"reports": operations_service.list_reports(g.user_id),
+                    "categories": operations_service.report_categories()}, "Novedades")
+
+
+@transit_bp.post("/driver-reports")
+@role_required(*DRIVER_ROLES)
+def create_driver_report():
+    report = operations_service.create_report(g.user_id, get_json_body())
+    if report["duplicate"]:
+        return success(report, "Ya tienes un SOS activo: la central ya fue alertada")
+    sos = report["priority"] == "sos"
+    return success(report, "SOS enviado: la central fue alertada" if sos else "Novedad enviada a la central", 201)
+
+
+# ---------------------------------------------------------------- avisos de la central
+@transit_bp.get("/driver-notices")
+@role_required(*DRIVER_ROLES)
+def driver_notices():
+    return success(operations_service.list_notices(g.user_id), "Avisos de la central")
+
+
+@transit_bp.post("/driver-notices/<int:notice_id>/ack")
+@role_required(*DRIVER_ROLES)
+def ack_driver_notice(notice_id):
+    operations_service.ack_notice(g.user_id, notice_id)
+    return success(None, "Aviso confirmado")

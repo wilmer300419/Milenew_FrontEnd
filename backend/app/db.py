@@ -7,6 +7,8 @@ abre una conexión por petición (útil en pruebas).
 Los repositorios usan `call_function` / `call_function_one`, que solo ejecutan
 funciones almacenadas fn_* definidas en database/functions.
 """
+import atexit
+
 import psycopg
 from flask import current_app, g
 from psycopg.rows import dict_row
@@ -43,6 +45,7 @@ def _pool():
     pool = current_app.extensions.get("db_pool")
     if pool is not None and pool.closed:
         pool.open(wait=False)
+        atexit.register(pool.close)  # sin esto, los comandos `flask ...` esperan al hilo del pool al salir
     return pool
 
 

@@ -1,4 +1,4 @@
-from ..repositories import central_repository, notification_repository, operations_repository, transit_repository
+from ..repositories import central_repository, operations_repository, transit_repository
 from ..utils.errors import NotFoundError, ValidationError
 from ..utils.validation import MAX_INT, get_str, is_int
 from .notification_service import relative_time
@@ -81,22 +81,27 @@ def assign(vehicle_code, data):
 
 
 # ---------------------------------------------------------------- avisos
+AUDIENCES = ("all", "drivers")
+
+
 def notices():
-    rows = notification_repository.list_for(None, 50)
-    return [{**r, "relative_time": relative_time(r["created_at"])} for r in rows]
+    return [{**r, "relative_time": relative_time(r["created_at"])} for r in central_repository.list_notices()]
 
 
 def create_notice(data):
     title = get_str(data, "title").strip()
     description = get_str(data, "description").strip()
+    audience = get_str(data, "audience").strip() or "all"
     errors = {}
+    if audience not in AUDIENCES:
+        errors["audience"] = "Público inválido (all o drivers)"
     if not 3 <= len(title) <= 150:
         errors["title"] = "El título debe tener entre 3 y 150 caracteres"
     if len(description) > 500:
         errors["description"] = "La descripción no puede superar 500 caracteres"
     if errors:
         raise ValidationError(errors)
-    return central_repository.create_notice(title, description)
+    return central_repository.create_notice(title, description, audience)
 
 
 def delete_notice(notice_id):
