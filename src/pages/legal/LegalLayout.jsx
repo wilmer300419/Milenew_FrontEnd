@@ -3,7 +3,7 @@ import Brand from '../../components/layout/Brand.jsx'
 import ThemeToggle from '../../components/layout/ThemeToggle.jsx'
 import Glass from '../../components/ui/Glass.jsx'
 
-export const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || ''
+const CONTACT_EMAIL = import.meta.env.VITE_CONTACT_EMAIL || ''
 
 export function Contact() {
   return CONTACT_EMAIL ? (

@@ -9,7 +9,7 @@ import { usePolling } from '../../hooks/usePolling.js'
 import { shortRouteName, useAllStations, useFavorites, useRoutes, useSelectedRoute, useStations, useVehicles } from '../../hooks/useTransit.js'
 import { getWallet } from '../../services/walletService.js'
 import { getTrips } from '../../services/tripService.js'
-import { firstName, formatDateTime, formatPrice, greeting } from '../../utils/formatters.js'
+import { firstName, formatDateTime, formatPrice, greeting, serviceCode } from '../../utils/formatters.js'
 import { daySubline, haptic } from '../../utils/human.js'
 import Glass from '../../components/ui/Glass.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -150,7 +150,7 @@ function PassengerHome() {
               <ul className="list">
                 {trips.data.slice(0, 3).map((t) => (
                   <li key={t.id} className="list-item">
-                    <span className={`svc ${t.service === 'Expreso' ? 'express' : ''}`}>{t.serviceCode ?? (t.service === 'Expreso' ? 'B75' : 'C15')}</span>
+                    <span className={`svc ${t.service === 'Expreso' ? 'express' : ''}`}>{serviceCode(t)}</span>
                     <span className="list-text">
                       <b>
                         {t.fromName} → {t.toName}

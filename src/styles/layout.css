@@ -63,6 +63,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  position: relative;
+  z-index: 2;
 }
 
 .tabs {
@@ -351,23 +353,6 @@
   background-size: 100% 2px;
 }
 
-.captcha-box {
-  display: flex;
-  justify-content: center;
-  min-height: 78px;
-  border-radius: var(--r-md);
-}
-
-.captcha-box > div {
-  transform-origin: center;
-}
-
-@media (max-width: 380px) {
-  .captcha-box > div {
-    transform: scale(0.88);
-  }
-}
-
 .steps {
   display: flex;
   gap: 6px;
@@ -481,51 +466,9 @@
   gap: 8px;
 }
 
-.features {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.feature {
-  padding: 18px;
-}
-
-.feature .ico {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: var(--fill-2);
-  color: var(--text);
-  margin-bottom: 14px;
-}
-
-.feature:nth-child(n) .ico {
-  background: var(--fill-2);
-  color: var(--text);
-  box-shadow: inset 0 0 0 1px var(--line);
-}
-
-.feature h3 {
-  margin: 0 0 4px;
-  font-size: 15px;
-}
-
-.feature p {
-  margin: 0;
-  font-size: 13px;
-  color: var(--muted);
-}
-
 @media (max-width: 960px) {
   .hero {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .features {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -822,6 +765,8 @@ main:focus {
   padding: 10px 14px;
   border-radius: var(--pill);
   font-size: 13.5px;
+  position: relative;
+  z-index: 1;
 }
 
 .trip-bar-ico {
@@ -1130,18 +1075,6 @@ main:focus {
   .preview {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-
-/* el vidrio (backdrop-filter) crea su propio apilamiento: la barra superior, con su
-   menú de avisos, debe quedar por encima de la barra de viaje en curso */
-.topbar-inner {
-  position: relative;
-  z-index: 2;
-}
-
-.trip-bar {
-  position: relative;
-  z-index: 1;
 }
 
 /* el contador sale del botón; el brillo animado no */

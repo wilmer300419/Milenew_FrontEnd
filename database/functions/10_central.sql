@@ -106,14 +106,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION fn_chat_unread_count(p_driver_id INTEGER, p_sender VARCHAR)
-RETURNS INTEGER
-LANGUAGE sql
-STABLE
-AS $$
-    SELECT COUNT(*)::INTEGER FROM chat_messages m
-    WHERE m.driver_id = p_driver_id AND m.sender = p_sender AND m.read_at IS NULL;
-$$;
+DROP FUNCTION IF EXISTS fn_chat_unread_count(INTEGER, VARCHAR);  -- retirada
 
 -- ---------------- flota
 CREATE OR REPLACE FUNCTION fn_fleet_list()

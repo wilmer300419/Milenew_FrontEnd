@@ -9,7 +9,7 @@ import { useFavorites, useSelectedRoute, useStations } from '../../hooks/useTran
 import { planTrip } from '../../services/transitService.js'
 import { getTrips, startTrip } from '../../services/tripService.js'
 import { getWallet } from '../../services/walletService.js'
-import { formatDateTime, formatPrice } from '../../utils/formatters.js'
+import { formatDateTime, formatPrice, serviceCode as svcCode } from '../../utils/formatters.js'
 import { haptic } from '../../utils/human.js'
 import Glass from '../../components/ui/Glass.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -20,8 +20,6 @@ import Reveal, { revealItem } from '../../components/ui/Reveal.jsx'
 import StationPicker from '../../components/transit-ui/StationPicker.jsx'
 import ActiveTripCard from '../../components/transit-ui/ActiveTripCard.jsx'
 import RouteSwitcher from '../../components/transit-ui/RouteSwitcher.jsx'
-
-const svcCode = (t) => t.serviceCode ?? (t.service === 'Expreso' ? 'B75' : 'C15')
 
 function Trips() {
   const toast = useToast()
@@ -219,7 +217,11 @@ function Trips() {
                     ))}
                   </div>
                   <div style={{ marginTop: 18 }}>
-                    {enough ? (
+                    {!wallet.data ? (
+                      <Button size="lg" block loading>
+                        Consultando saldo…
+                      </Button>
+                    ) : enough ? (
                       <Button size="lg" block onClick={() => setConfirming(true)}>
                         <Ticket size={18} /> Pagar {formatPrice(plan.fare)}
                       </Button>

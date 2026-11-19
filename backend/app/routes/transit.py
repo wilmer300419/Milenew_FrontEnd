@@ -22,11 +22,6 @@ def stations():
     return success(transit_service.list_stations(route), "Estaciones obtenidas")
 
 
-@transit_bp.get("/routes/<route_id>/status")
-def route_status(route_id):
-    return success(transit_service.route_status(route_id), "Estado de la ruta")
-
-
 @transit_bp.get("/routes/<route_id>/vehicles")
 def route_vehicles(route_id):
     return success(transit_service.route_vehicles(route_id), "Buses en la ruta")
@@ -57,12 +52,6 @@ def create_incident():
 
 
 # ---------------------------------------------------------------- conductor
-@transit_bp.get("/vehicles/<vehicle_id>/telemetry")
-@role_required(*DRIVER_ROLES)
-def telemetry(vehicle_id):
-    return success(transit_service.vehicle_telemetry(vehicle_id), "Telemetría")
-
-
 @transit_bp.get("/my-vehicle")
 @role_required(*DRIVER_ROLES)
 def my_vehicle():

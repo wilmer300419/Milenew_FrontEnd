@@ -19,7 +19,7 @@ def test_session_cookie_is_httponly_and_not_in_body(app, browser, passenger):
     assert "milenew_session=" in cookie and "HttpOnly" in cookie and "Path=/api" in cookie
     assert "Max-Age" not in cookie  # sin "recordarme": se borra al cerrar el navegador
     assert "token" not in res.get_json()["data"]
-    assert browser.get("/api/auth/me").get_json()["data"]["email"] == "ana@example.com"
+    assert browser.get("/api/users/me").get_json()["data"]["email"] == "ana@example.com"
 
     remembered = _login(browser, rememberMe=True).headers["Set-Cookie"]
     assert "Max-Age=2592000" in remembered
@@ -33,9 +33,9 @@ def test_csrf_header_required_with_cookie(browser, passenger):
 
 def test_logout_revokes_the_token(client, passenger):
     token = passenger["token"]
-    assert client.get("/api/auth/me", headers=auth(token)).status_code == 200
+    assert client.get("/api/users/me", headers=auth(token)).status_code == 200
     assert client.post("/api/auth/logout", headers=auth(token)).status_code == 200
-    res = client.get("/api/auth/me", headers=auth(token))
+    res = client.get("/api/users/me", headers=auth(token))
     assert res.status_code == 401 and "sesión se cerró" in res.get_json()["message"]
 
 
@@ -48,7 +48,7 @@ def test_logout_everywhere(client, passenger):
     other = client.post("/api/auth/login", json={"email": "ana@example.com", "password": "secreta123"}).get_json()["data"]
     assert client.post("/api/auth/logout-all", headers=auth(other["token"])).status_code == 200
     for token in (passenger["token"], other["token"]):
-        assert client.get("/api/auth/me", headers=auth(token)).status_code == 401
+        assert client.get("/api/users/me", headers=auth(token)).status_code == 401
 
 
 def test_password_change_closes_other_sessions_but_not_this_one(browser, client, passenger):
@@ -56,15 +56,15 @@ def test_password_change_closes_other_sessions_but_not_this_one(browser, client,
     res = browser.put("/api/users/me/password", headers=XHR,
                       json={"currentPassword": "secreta123", "newPassword": "nuevaClave99"})
     assert res.status_code == 200 and "milenew_session=" in res.headers["Set-Cookie"]
-    assert browser.get("/api/auth/me").status_code == 200          # esta sesión sigue
-    assert client.get("/api/auth/me", headers=auth(passenger["token"])).status_code == 401  # las otras no
+    assert browser.get("/api/users/me").status_code == 200          # esta sesión sigue
+    assert client.get("/api/users/me", headers=auth(passenger["token"])).status_code == 401  # las otras no
 
 
 def test_recovery_closes_sessions(client, passenger, outbox):
     client.post("/api/auth/recovery/request", json={"email": "ana@example.com"})
     client.post("/api/auth/recovery/reset",
                 json={"email": "ana@example.com", "code": outbox[0]["code"], "newPassword": "nuevaClave99"})
-    assert client.get("/api/auth/me", headers=auth(passenger["token"])).status_code == 401
+    assert client.get("/api/users/me", headers=auth(passenger["token"])).status_code == 401
 
 
 def test_delete_account(client, passenger):
@@ -74,7 +74,7 @@ def test_delete_account(client, passenger):
     bad = client.delete("/api/users/me", json={"password": "otra-clave"}, headers=h)
     assert bad.status_code == 400
     assert client.delete("/api/users/me", json={"password": "secreta123"}, headers=h).status_code == 200
-    assert client.get("/api/auth/me", headers=h).status_code == 401
+    assert client.get("/api/users/me", headers=h).status_code == 401
     assert client.post("/api/auth/login", json={"email": "ana@example.com", "password": "secreta123"}).status_code == 401
     register(client)  # el correo queda libre
 

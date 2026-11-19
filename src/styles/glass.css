@@ -444,8 +444,7 @@
 }
 
 /* los elementos internos "salen" un poco del panel */
-.glass.tilt > .card-head,
-.glass.tilt .lift {
+.glass.tilt > .card-head {
   transform: translateZ(18px);
 }
 

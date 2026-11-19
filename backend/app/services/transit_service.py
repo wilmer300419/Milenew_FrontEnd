@@ -161,33 +161,11 @@ def route_vehicles(route_code):
             "serverTime": _now_iso(), "vehicles": vehicles}
 
 
-def route_status(route_code):
-    """Compatibilidad: estado del bus principal de la ruta."""
-    route = _get_route(route_code)
-    vehicle = transit_repository.get_vehicle_by_route(route_code)
-    if not vehicle:
-        return {"routeId": route["code"], "routeName": route["name"], "currentIndex": None,
-                "direction": None, "telemetry": None, "updatedAt": _now_iso()}
-    stations = transit_repository.list_stations(route_code)
-    pub = _public_vehicle(vehicle, stations, _simulate_for(vehicle, stations))
-    return {"routeId": route["code"], "routeName": route["name"], "vehicleId": vehicle["code"],
-            "currentIndex": pub["currentIndex"], "direction": pub["direction"],
-            "telemetry": {"speed": pub["speed"], "occupancyPct": pub["occupancyPct"], "cars": pub["cars"]},
-            "updatedAt": _now_iso()}
-
-
 def _vehicle_payload(vehicle):
     route = _get_route(vehicle["route_code"])
     stations = transit_repository.list_stations(route["code"])
     pub = _public_vehicle(vehicle, stations, _simulate_for(vehicle, stations))
     return {**pub, "routeId": route["code"], "routeName": route["name"], "updatedAt": _now_iso()}
-
-
-def vehicle_telemetry(vehicle_code):
-    vehicle = transit_repository.get_vehicle(vehicle_code)
-    if not vehicle:
-        raise NotFoundError("Vehículo no encontrado")
-    return _vehicle_payload(vehicle)
 
 
 def my_vehicle(driver_id):

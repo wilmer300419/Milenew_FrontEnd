@@ -206,7 +206,7 @@ function CentralHome() {
         </Glass>
       </div>
 
-      <CloseDialog incident={closing} onClose={() => setClosing(null)} onDone={refreshAll} />
+      <CloseDialog key={closing?.id} incident={closing} onClose={() => setClosing(null)} onDone={refreshAll} />
     </Reveal>
   )
 }

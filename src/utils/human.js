@@ -22,7 +22,7 @@ export function occupancyMood(pct) {
 }
 
 /** Momento del día: lo usan el saludo y la luz del fondo. */
-export function dayPart(date = new Date()) {
+function dayPart(date = new Date()) {
   const h = date.getHours()
   if (h >= 5 && h < 10) return 'morning'
   if (h >= 10 && h < 17) return 'day'

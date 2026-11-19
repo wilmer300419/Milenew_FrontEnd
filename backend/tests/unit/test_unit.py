@@ -142,7 +142,7 @@ def test_db_down_returns_503_json(unit_app):
 @pytest.mark.parametrize("method,url", [
     ("get", "/api/wallet"), ("post", "/api/wallet/recharge"), ("get", "/api/users/me"),
     ("put", "/api/users/me"), ("put", "/api/users/me/password"), ("get", "/api/transit/checklist"),
-    ("get", "/api/transit/operations-chat"), ("get", "/api/transit/vehicles/vagon-02/telemetry"),
+    ("get", "/api/transit/operations-chat"), ("get", "/api/transit/my-vehicle"),
     ("post", "/api/auth/logout-all"), ("delete", "/api/users/me"),
 ])
 def test_protected_routes_need_token(unit_app, method, url):
@@ -152,7 +152,7 @@ def test_protected_routes_need_token(unit_app, method, url):
 
 
 @pytest.mark.parametrize("url", ["/api/transit/checklist", "/api/transit/operations-chat",
-                                 "/api/transit/vehicles/vagon-02/telemetry"])
+                                 "/api/transit/my-vehicle"])
 def test_driver_routes_forbidden_for_passenger(unit_app, url, monkeypatch):
     from app.utils import auth as auth_utils
     monkeypatch.setattr(auth_utils, "call_function_one", lambda *a: {"fn_session_check": True})

@@ -22,10 +22,6 @@ def mark_chat_read(driver_id, sender):
     return call_function_one("fn_chat_mark_read", driver_id, sender)["fn_chat_mark_read"]
 
 
-def chat_unread(driver_id, sender):
-    return call_function_one("fn_chat_unread_count", driver_id, sender)["fn_chat_unread_count"]
-
-
 def fleet():
     return call_function("fn_fleet_list")
 

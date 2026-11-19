@@ -59,12 +59,6 @@ def logout_all():
     return clear_session_cookie(response), code
 
 
-@auth_bp.get("/me")
-@login_required
-def me():
-    return success(auth_service.get_profile(g.user_id), "Usuario autenticado")
-
-
 @auth_bp.post("/recovery/request")
 @limiter.limit("5 per 15 minutes")
 def recovery_request():

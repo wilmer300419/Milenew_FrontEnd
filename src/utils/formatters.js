@@ -2,9 +2,6 @@ const cop = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP',
 
 export const formatPrice = (value) => cop.format(Number(value) || 0)
 
-export const formatDate = (date) =>
-  new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(date))
-
 export const formatDateTime = (date) =>
   new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(
     new Date(date),
@@ -17,6 +14,9 @@ export function formatEta(seconds) {
   if (seconds < 60) return `${Math.round(seconds)} s`
   return `${Math.round(seconds / 60)} min`
 }
+
+/** Código visible del servicio de un viaje: B75, C15, B13… */
+export const serviceCode = (t) => t.serviceCode ?? (t.service === 'Expreso' ? 'B75' : 'C15')
 
 export function firstName(name = '') {
   return name.trim().split(/\s+/)[0] || ''

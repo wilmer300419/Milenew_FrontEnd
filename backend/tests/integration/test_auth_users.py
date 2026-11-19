@@ -17,9 +17,8 @@ def test_register_login_me(client):
     assert res.status_code == 200 and body["data"]["token"]
     assert "requiresTwoFactor" not in body["data"]
 
-    for url in ("/api/users/me", "/api/auth/me"):
-        me = client.get(url, headers=auth(body["data"]["token"]))
-        assert me.get_json()["data"]["email"] == "ana@example.com"
+    me = client.get("/api/users/me", headers=auth(body["data"]["token"]))
+    assert me.get_json()["data"]["email"] == "ana@example.com"
 
 
 def test_register_duplicate_and_validation(client, passenger):

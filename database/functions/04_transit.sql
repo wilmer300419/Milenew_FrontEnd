@@ -45,36 +45,9 @@ AS $$
     ORDER BY s.sort_order;
 $$;
 
--- (v2 cambió las columnas devueltas: se borran antes de recrearlas)
+-- Funciones retiradas (ya no las usa el BackEnd): se borran de bases existentes
 DROP FUNCTION IF EXISTS fn_vehicle_get(VARCHAR);
 DROP FUNCTION IF EXISTS fn_vehicle_get_by_route(VARCHAR);
-
-CREATE OR REPLACE FUNCTION fn_vehicle_get(p_code VARCHAR)
-RETURNS TABLE (id INTEGER, code VARCHAR, label VARCHAR, service VARCHAR,
-               route_code VARCHAR, cars_count INTEGER, driver_id INTEGER)
-LANGUAGE sql
-STABLE
-AS $$
-    SELECT v.id, v.code, COALESCE(v.label, v.code)::VARCHAR, v.service, r.code, v.cars_count, v.driver_id
-    FROM vehicles v
-    JOIN routes r ON r.id = v.route_id
-    WHERE v.code = p_code;
-$$;
-
--- Vehículo principal que opera una ruta (el de menor id).
-CREATE OR REPLACE FUNCTION fn_vehicle_get_by_route(p_route_code VARCHAR)
-RETURNS TABLE (id INTEGER, code VARCHAR, label VARCHAR, service VARCHAR,
-               route_code VARCHAR, cars_count INTEGER, driver_id INTEGER)
-LANGUAGE sql
-STABLE
-AS $$
-    SELECT v.id, v.code, COALESCE(v.label, v.code)::VARCHAR, v.service, r.code, v.cars_count, v.driver_id
-    FROM vehicles v
-    JOIN routes r ON r.id = v.route_id
-    WHERE r.code = p_route_code
-    ORDER BY v.id
-    LIMIT 1;
-$$;
 
 -- Todos los buses de una ruta.
 CREATE OR REPLACE FUNCTION fn_vehicle_list_by_route(p_route_code VARCHAR)

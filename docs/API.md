@@ -53,7 +53,6 @@ Objeto `User`: `{ id, name, email, role }` con `role` ∈ `user` | `driver` | `a
 | POST | `/auth/register` | `{ name, email, password, acceptTerms: true, captchaToken }` | `{ user }` + cookie |
 | POST | `/auth/logout` | — | `null` (revoca la sesión y borra la cookie) |
 | POST | `/auth/logout-all` 🔒 | — | `null` (cierra todas las sesiones del usuario) |
-| GET | `/auth/me` 🔒 | — | `User` |
 | POST | `/auth/recovery/request` | `{ email }` | `null` (mismo mensaje exista o no el correo) |
 | POST | `/auth/recovery/reset` | `{ email, code, newPassword }` | `null` |
 
@@ -84,10 +83,8 @@ Objeto `User`: `{ id, name, email, role }` con `role` ∈ `user` | `driver` | `a
 | GET | `/transit/stations/:stationId/arrivals` | `{ station, arrivals: [{ vehicleId, label, service, direction, etaSeconds, currentStation }], serverTime }` |
 | GET | `/transit/incident-categories` | `string[]` |
 | GET | `/transit/my-vehicle` 🚍 | `Vehicle` del bus asignado al operador (404 si no tiene) |
-| GET | `/transit/routes/:routeId/status` | `{ routeId, routeName, vehicleId, currentIndex, direction, telemetry: { speed, occupancyPct, cars }, updatedAt }` |
 | GET | `/transit/trip-plan?from=<stationId>&to=<stationId>` | igual a `computeTripPlan` (`sameStation, stops, direction, fare, bestService, bestMinutes, savedMinutes, expressAvailable, legs`) |
 | POST | `/transit/incidents` 👤? | body `{ category, description? }` → `{ id, category, description, status, createdAt }` |
-| GET | `/transit/vehicles/:vehicleId/telemetry` 🚍 | `{ vehicleId, routeId, currentIndex, direction, speed, occupancyPct, cars, updatedAt }` |
 | GET | `/transit/checklist` 🚍 | `[{ id, label, done }]` del día |
 | POST | `/transit/checklist` 🚍 | body `{ itemId, done }` → `{ id, label, done }` |
 | GET | `/transit/operations-chat` 🚍 | `[{ id, from: "driver" \| "central", text, createdAt }]` |
@@ -168,7 +165,7 @@ transacción y cierra el viaje anterior si seguía abierto. Si no alcanza el sal
 | --- | --- |
 | login / register / me / perfil | `fn_user_get_auth_by_email`, `fn_user_get_auth_by_id`, `fn_user_create`, `fn_user_get_by_id`, `fn_user_update_profile`, `fn_user_update_password` |
 | 2FA / recuperación | `fn_auth_code_create`, `fn_auth_code_get_active`, `fn_auth_code_register_failure`, `fn_auth_code_consume`, `fn_user_reset_password_with_code` |
-| estaciones / estado / viaje / telemetría | `fn_route_get`, `fn_station_list`, `fn_vehicle_get`, `fn_vehicle_get_by_route` |
+| estaciones / buses / viaje | `fn_route_get`, `fn_station_list`, `fn_vehicle_list_by_route`, `fn_vehicle_get_by_driver` |
 | incidencias | `fn_incident_category_list`, `fn_incident_create` |
 | tarjeta | `fn_wallet_get`, `fn_wallet_recharge` |
 | notificaciones | `fn_notification_list` |

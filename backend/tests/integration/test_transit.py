@@ -13,15 +13,6 @@ def test_stations_from_database(client):
     assert isinstance(stations[0]["accesses"], list)
 
 
-def test_route_status(client):
-    res = client.get("/api/transit/routes/caracas-b75/status")
-    data = res.get_json()["data"]
-    assert res.status_code == 200
-    assert 0 <= data["currentIndex"] <= 18
-    assert len(data["telemetry"]["cars"]) == 4
-    assert client.get("/api/transit/routes/no-existe/status").status_code == 404
-
-
 def test_trip_plan_express_and_corridor(client):
     s = {st["name"]: st["id"] for st in _stations(client)}
     express = client.get(f"/api/transit/trip-plan?from={s['Calle 76']}&to={s['Portal Tunal']}").get_json()["data"]
@@ -78,9 +69,8 @@ def test_driver_panel(client, driver, passenger):
     h = auth(driver["token"])
     assert driver["user"]["role"] == "driver"
 
-    tel = client.get("/api/transit/vehicles/vagon-02/telemetry", headers=h).get_json()["data"]
-    assert {"speed", "occupancyPct", "cars", "currentIndex"} <= set(tel)
-    assert client.get("/api/transit/vehicles/nope/telemetry", headers=h).status_code == 404
+    tel = client.get("/api/transit/my-vehicle", headers=h).get_json()["data"]
+    assert {"speed", "occupancyPct", "cars", "currentIndex", "upcomingStops"} <= set(tel)
 
     items = client.get("/api/transit/checklist", headers=h).get_json()["data"]
     assert len(items) == 5 and not any(i["done"] for i in items)

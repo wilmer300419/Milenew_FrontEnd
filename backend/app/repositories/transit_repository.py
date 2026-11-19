@@ -10,14 +10,6 @@ def list_stations(route_code):
     return call_function("fn_station_list", route_code)
 
 
-def get_vehicle(vehicle_code):
-    return call_function_one("fn_vehicle_get", vehicle_code)
-
-
-def get_vehicle_by_route(route_code):
-    return call_function_one("fn_vehicle_get_by_route", route_code)
-
-
 def list_incident_categories():
     return [row["name"] for row in call_function("fn_incident_category_list")]
 
